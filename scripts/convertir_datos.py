@@ -19,7 +19,7 @@ def limpiar_comuna(c):
 # ================= SOPORTES
 df = pd.read_csv(os.path.join(DATA_DIR, "soportes_vista_actual.csv"))
 
-# 🔥 detectar columnas automáticamente
+# detectar columnas automáticamente
 col_comuna = next((c for c in df.columns if 'comuna' in c.lower()), None)
 col_lat = next((c for c in df.columns if 'lat' in c.lower()), None)
 col_lng = next((c for c in df.columns if 'lng' in c.lower() or 'lon' in c.lower()), None)
@@ -33,7 +33,11 @@ df['lng'] = df[col_lng]
 df['categoria'] = df[col_categoria].apply(limpiar_texto) if col_categoria else ""
 df['tipo'] = df[col_tipo].apply(limpiar_texto) if col_tipo else ""
 
+# eliminar filas sin coordenadas
 df = df.dropna(subset=['lat','lng'])
+
+# 🔥 SOLUCIÓN CLAVE → eliminar NaN
+df = df.fillna("")
 
 with open(os.path.join(DATA_DIR, "soportes.json"), "w") as f:
     json.dump(df.to_dict(orient='records'), f, indent=2, ensure_ascii=False)
@@ -55,6 +59,9 @@ df2['lng'] = df2[col_lng2]
 df2['nombre'] = df2[col_nombre].apply(limpiar_texto) if col_nombre else "Tienda"
 
 df2 = df2.dropna(subset=['lat','lng'])
+
+# 🔥 SOLUCIÓN CLAVE → eliminar NaN
+df2 = df2.fillna("")
 
 with open(os.path.join(DATA_DIR, "tricot.json"), "w") as f:
     json.dump(df2.to_dict(orient='records'), f, indent=2, ensure_ascii=False)
