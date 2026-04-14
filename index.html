@@ -7,39 +7,27 @@
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css"/>
-<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css"/>
 
 <style>
 body{margin:0;font-family:Arial;background:#0b1220;color:#fff}
 .app{display:flex;height:100vh}
-.sidebar{width:380px;background:#0b1324;padding:15px;overflow:auto}
-.map-wrap{flex:1}
-#map{height:100%}
+.sidebar{width:360px;background:#0b1324;padding:15px;overflow:auto}
+#map{flex:1}
 
 .stat{background:#081a3b;padding:10px;border-radius:10px;margin-bottom:8px}
 
-input,select,button{
-width:100%;padding:10px;margin-bottom:10px;
-border-radius:10px;background:#091a36;color:#fff;border:none
-}
+select,input{width:100%;padding:10px;margin-bottom:10px;border-radius:10px;background:#091a36;color:#fff;border:none}
 
-.chips{display:flex;gap:8px;flex-wrap:wrap}
-.chip{padding:8px 12px;background:#0a1b3a;border-radius:999px;cursor:pointer}
+.chip{display:inline-block;padding:8px 12px;margin:3px;background:#0a1b3a;border-radius:20px;cursor:pointer}
 .chip.active{background:#2563eb}
-
-@media(max-width:900px){
-.app{flex-direction:column;}
-.sidebar{width:100%;height:40%;}
-.map-wrap{height:60%;}
-}
 </style>
 </head>
 
 <body>
 
 <div class="app">
-
 <div class="sidebar">
+
 <h2>📊 OOH Intelligence</h2>
 
 <div class="stat">Soportes: <b id="totalSoportes">0</b></div>
@@ -47,25 +35,23 @@ border-radius:10px;background:#091a36;color:#fff;border:none
 <div class="stat">Comunas: <b id="totalComunas">0</b></div>
 
 <input id="search" placeholder="Buscar soporte">
-
 <select id="comuna"></select>
 <select id="categoria"></select>
 
-<button id="reset">Reset</button>
+<button onclick="reset()">Reset</button>
 
-<div class="chips">
-<div class="chip active" data-layer="soportes">Soportes</div>
-<div class="chip active" data-layer="tiendas">Tiendas</div>
-<div class="chip active" data-layer="h3">H3</div>
-<div class="chip active" data-layer="h6">H6</div>
-<div class="chip" data-layer="h8">H8</div>
-<div class="chip active" data-layer="comunas">Comunas</div>
+<div>
+<span class="chip active" data-layer="soportes">Soportes</span>
+<span class="chip active" data-layer="tiendas">Tiendas</span>
+<span class="chip active" data-layer="h3">H3</span>
+<span class="chip active" data-layer="h6">H6</span>
+<span class="chip" data-layer="h8">H8</span>
+<span class="chip active" data-layer="comunas">Comunas</span>
 </div>
 
 </div>
 
-<div class="map-wrap"><div id="map"></div></div>
-
+<div id="map"></div>
 </div>
 
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
@@ -77,29 +63,14 @@ const map=L.map('map').setView([-33.45,-70.66],11);
 
 L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(map);
 
-map.createPane('hex');map.getPane('hex').style.zIndex=400;
-map.createPane('points');map.getPane('points').style.zIndex=650;
+let soportes=[],tiendas=[];
+let filtrados=[],tiendasFiltradas=[];
+let cluster=L.markerClusterGroup();
 
-let soportes=[],tiendas=[],filtrados=[],tiendasFiltradas=[];
-let h3,h6,h8,capaComunas;
+async function load(){
 
-let capaPts=L.markerClusterGroup();
-
-const layersState={
-soportes:true,tiendas:true,h3:true,h6:true,h8:false,comunas:true
-};
-
-// ================= LOAD DATA
-async function loadData(){
-
-const [s,t,h3d,h6d,h8d,cd] = await Promise.all([
-fetch('data/soportes_h3.json').then(r=>r.json()),
-fetch('data/tricot.json').then(r=>r.json()),
-fetch('data/h3.geojson').then(r=>r.json()),
-fetch('data/h6.geojson').then(r=>r.json()),
-fetch('data/h8.geojson').then(r=>r.json()),
-fetch('data/comunas.geojson').then(r=>r.json())
-]);
+const s=await fetch('data/soportes_h3.json').then(r=>r.json());
+const t=await fetch('data/tricot.json').then(r=>r.json());
 
 soportes=s;
 tiendas=t;
@@ -107,165 +78,91 @@ tiendas=t;
 filtrados=s;
 tiendasFiltradas=t;
 
-h3=h3d;h6=h6d;h8=h8d;
-
-cargarComunas(cd);
 init();
 render();
 }
 
-// ================= COMUNAS
-function cargarComunas(data){
-
-capaComunas=L.geoJSON(data,{
-style:{color:'#1e293b',weight:1,fillOpacity:0.03},
-onEachFeature:(f,l)=>{
-const n=f.properties.NOM_COM||f.properties.Comuna;
-
-l.bindTooltip(n);
-
-l.on('mouseover',()=>l.setStyle({color:'#22c55e',weight:3,fillOpacity:0.15}));
-l.on('mouseout',()=>capaComunas.resetStyle(l));
-l.on('click',()=>map.fitBounds(l.getBounds()));
-}
-}).addTo(map);
-}
-
-// ================= INIT
 function init(){
 
-const comunas=[...new Set(soportes.map(s=>s.comuna))];
-const categorias=[...new Set(soportes.map(s=>s.categoria))];
+const comunas=[...new Set(soportes.map(s=>s.comuna).filter(c=>c))];
+const categorias=[...new Set(soportes.map(s=>s.categoria).filter(c=>c))];
 
-document.getElementById('comuna').innerHTML='<option value="">Todas</option>'+
-comunas.map(c=>`<option>${c}</option>`).join('');
+document.getElementById('comuna').innerHTML='<option value="">Todas</option>'+comunas.map(c=>`<option>${c}</option>`).join('');
+document.getElementById('categoria').innerHTML='<option value="">Todas</option>'+categorias.map(c=>`<option>${c}</option>`).join('');
 
-document.getElementById('categoria').innerHTML='<option value="">Todas</option>'+
-categorias.map(c=>`<option>${c}</option>`).join('');
+['search','comuna','categoria'].forEach(id=>{
+document.getElementById(id).addEventListener('input',filtrar);
+});
 
-['search','comuna','categoria'].forEach(id=>
-document.getElementById(id).addEventListener('input',filtrar)
-);
-
-document.getElementById('reset').onclick=()=>{
-filtrados=soportes;
-tiendasFiltradas=tiendas;
-render();
-};
-
-document.querySelectorAll('.chip').forEach(chip=>{
-chip.onclick=()=>{
-const k=chip.dataset.layer;
-layersState[k]=!layersState[k];
-chip.classList.toggle('active');
-render();
-};
+document.querySelectorAll('.chip').forEach(c=>{
+c.onclick=()=>c.classList.toggle('active');
 });
 }
 
-// ================= FILTRO
 function filtrar(){
 
 const q=document.getElementById('search').value.toLowerCase();
-const c=document.getElementById('comuna').value;
+const comuna=document.getElementById('comuna').value;
 const cat=document.getElementById('categoria').value;
 
 filtrados=soportes.filter(s=>
-(!q||s.nombre?.toLowerCase().includes(q)) &&
-(!c||s.comuna===c) &&
+(!q||s.nombre.toLowerCase().includes(q)) &&
+(!comuna||s.comuna===comuna) &&
 (!cat||s.categoria===cat)
 );
 
 tiendasFiltradas=tiendas.filter(t=>
-(!c||t.comuna===c)
+(!comuna||t.comuna===comuna)
 );
 
 render();
 }
 
-// ================= RENDER
 function render(){
 
-map.removeLayer(capaPts);
-capaPts=L.markerClusterGroup();
+map.removeLayer(cluster);
+cluster=L.markerClusterGroup();
 
-// SOPORTES
-if(layersState.soportes){
 filtrados.forEach(p=>{
-const m=L.circleMarker([p.lat,p.lng],{
-radius:5,color:'#fff',fillColor:'#ef4444',fillOpacity:1
+const m=L.circleMarker([p.lat,p.lng],{radius:5,color:'#fff',fillColor:'#ef4444',fillOpacity:1});
+
+m.bindPopup(`<b>${p.nombre}</b><br>${p.comuna}<br>${p.categoria}`);
+
+cluster.addLayer(m);
 });
 
-m.bindPopup(`
-<b>📍 SOPORTE</b><br>
-${p.nombre||''}<br>
-${p.comuna||''}<br>
-${p.categoria||''}<br>
-${p.tipo||''}
-`);
-
-capaPts.addLayer(m);
-});
-}
-
-// TIENDAS
-if(layersState.tiendas){
 tiendasFiltradas.forEach(t=>{
-if(!t.lat||!t.lng) return;
 
-const m=L.marker([t.lat,t.lng],{
-icon:L.icon({
-iconUrl:'https://cdn-icons-png.flaticon.com/512/1077/1077114.png',
-iconSize:[28,28]
-})
+const m=L.marker([t.lat,t.lng]);
+
+m.bindPopup(()=>{
+
+const cercanos=soportes.filter(s=>map.distance([t.lat,t.lng],[s.lat,s.lng])<500);
+
+return `<b>${t.nombre}</b><br>
+Soportes cercanos: ${cercanos.length}`;
+
 });
 
-m.bindPopup(`<b>🏬 TIENDA</b><br>${t.nombre}<br>${t.comuna}`);
+cluster.addLayer(m);
 
-capaPts.addLayer(m);
 });
-}
 
-map.addLayer(capaPts);
+map.addLayer(cluster);
 
-renderHex();
-
-// KPIs
 document.getElementById('totalSoportes').innerText=filtrados.length;
 document.getElementById('totalTiendas').innerText=tiendasFiltradas.length;
-document.getElementById('totalComunas').innerText=
-new Set(filtrados.map(s=>s.comuna)).size;
+document.getElementById('totalComunas').innerText=new Set(filtrados.map(s=>s.comuna)).size;
 
 }
 
-// ================= HEX
-function renderHex(){
-
-if(layersState.h3 && h3){
-L.geoJSON(h3,{pane:'hex',
-style:{color:'#22c55e',fillOpacity:0.2},
-onEachFeature:(f,l)=>l.bindPopup(`H3<br>Soportes:${f.properties.soportes||0}`)
-}).addTo(map);
+function reset(){
+filtrados=soportes;
+tiendasFiltradas=tiendas;
+render();
 }
 
-if(layersState.h6 && h6){
-L.geoJSON(h6,{pane:'hex',
-style:{color:'#2563eb',fillOpacity:0.3},
-onEachFeature:(f,l)=>l.bindPopup(`H6<br>Soportes:${f.properties.soportes||0}`)
-}).addTo(map);
-}
-
-if(layersState.h8 && h8){
-L.geoJSON(h8,{pane:'hex',
-style:{color:'#9333ea',fillOpacity:0.25},
-onEachFeature:(f,l)=>l.bindPopup(`H8<br>Soportes:${f.properties.soportes||0}`)
-}).addTo(map);
-}
-
-}
-
-// ================= START
-loadData();
+load();
 
 </script>
 

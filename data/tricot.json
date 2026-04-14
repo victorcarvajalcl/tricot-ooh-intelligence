@@ -10,10 +10,10 @@
     "Direccionok": "21 de Mayo 364,Arica,Chile",
     "Latitud": -18.4816329,
     "Longitud": -70.3155606,
-    "comuna": "Arica",
     "lat": -18.4816329,
     "lng": -70.3155606,
-    "nombre": "Tricot Arica"
+    "nombre": "Tricot Arica",
+    "comuna": "Sin comuna"
   },
   {
     "Región": "Tarapacá",
@@ -26,10 +26,10 @@
     "Direccionok": "Vivar 636,Iquique,Chile",
     "Latitud": -20.2164773,
     "Longitud": -70.1486776,
-    "comuna": "Iquique",
     "lat": -20.2164773,
     "lng": -70.1486776,
-    "nombre": "Tricot Iquique"
+    "nombre": "Tricot Iquique",
+    "comuna": "Sin comuna"
   },
   {
     "Región": "Antofagasta",
@@ -42,10 +42,10 @@
     "Direccionok": "Arturo Prat 501,Antofagasta,Chile",
     "Latitud": -23.64802,
     "Longitud": -70.3971048,
-    "comuna": "Antofagasta",
     "lat": -23.64802,
     "lng": -70.3971048,
-    "nombre": "Tricot Antofagasta"
+    "nombre": "Tricot Antofagasta",
+    "comuna": "Sin comuna"
   },
   {
     "Región": "Antofagasta",
@@ -58,10 +58,10 @@
     "Direccionok": "Arturo Prat 533,Antofagasta,Chile",
     "Latitud": -23.6481988,
     "Longitud": -70.396933,
-    "comuna": "Antofagasta",
     "lat": -23.6481988,
     "lng": -70.396933,
-    "nombre": "Tricot Antofagasta 2"
+    "nombre": "Tricot Antofagasta 2",
+    "comuna": "Sin comuna"
   },
   {
     "Región": "Antofagasta",
@@ -74,10 +74,10 @@
     "Direccionok": "Av. Einstein 287, Local 150 y 250,Antofagasta,Chile",
     "Latitud": -22.4498667,
     "Longitud": -68.9268032,
-    "comuna": "Antofagasta",
     "lat": -22.4498667,
     "lng": -68.9268032,
-    "nombre": "Tricot Mall Antofagasta"
+    "nombre": "Tricot Mall Antofagasta",
+    "comuna": "Sin comuna"
   },
   {
     "Región": "Atacama",
@@ -90,10 +90,10 @@
     "Direccionok": "Los Carreras 501,Copiapó,Chile",
     "Latitud": -27.4077791,
     "Longitud": -70.2822986,
-    "comuna": "Copiapó",
     "lat": -27.4077791,
     "lng": -70.2822986,
-    "nombre": "Tricot Copiapó"
+    "nombre": "Tricot Copiapó",
+    "comuna": "Sin comuna"
   },
   {
     "Región": "Coquimbo",
@@ -106,10 +106,10 @@
     "Direccionok": "Cordovez 618,La Serena,Chile",
     "Latitud": -29.9033163,
     "Longitud": -71.2520305,
-    "comuna": "La Serena",
     "lat": -29.9033163,
     "lng": -71.2520305,
-    "nombre": "Tricot La Serena"
+    "nombre": "Tricot La Serena",
+    "comuna": "Sin comuna"
   },
   {
     "Región": "Coquimbo",
@@ -122,10 +122,10 @@
     "Direccionok": "Cordovez 622,La Serena,Chile",
     "Latitud": -29.9033163,
     "Longitud": -71.2520305,
-    "comuna": "La Serena",
     "lat": -29.9033163,
     "lng": -71.2520305,
-    "nombre": "Tricot Connect La Serena"
+    "nombre": "Tricot Connect La Serena",
+    "comuna": "Sin comuna"
   },
   {
     "Región": "Coquimbo",
@@ -138,10 +138,10 @@
     "Direccionok": "Av. Balmaceda 2885, Lc 193,La Serena,Chile",
     "Latitud": -29.9256883,
     "Longitud": -71.2595653,
-    "comuna": "La Serena",
     "lat": -29.9256883,
     "lng": -71.2595653,
-    "nombre": "Tricot Mall La Serena"
+    "nombre": "Tricot Mall La Serena",
+    "comuna": "Sin comuna"
   },
   {
     "Región": "Coquimbo",
@@ -154,10 +154,10 @@
     "Direccionok": "Aldunate 1139,Coquimbo,Chile",
     "Latitud": -29.879147,
     "Longitud": -71.2471721,
-    "comuna": "Coquimbo",
     "lat": -29.879147,
     "lng": -71.2471721,
-    "nombre": "Tricot Coquimbo"
+    "nombre": "Tricot Coquimbo",
+    "comuna": "Sin comuna"
   },
   {
     "Región": "Coquimbo",
@@ -170,10 +170,10 @@
     "Direccionok": "Coquimbo 354 D,Ovalle,Chile",
     "Latitud": -30.6021037,
     "Longitud": -71.1995867,
-    "comuna": "Ovalle",
     "lat": -30.6021037,
     "lng": -71.1995867,
-    "nombre": "Tricot Ovalle"
+    "nombre": "Tricot Ovalle",
+    "comuna": "Sin comuna"
   },
   {
     "Región": "Valparaíso",
@@ -186,10 +186,10 @@
     "Direccionok": "Arturo Prat 93,San Felipe,Chile",
     "Latitud": -32.7514107,
     "Longitud": -70.7200089,
-    "comuna": "San Felipe",
     "lat": -32.7514107,
     "lng": -70.7200089,
-    "nombre": "Tricot San Felipe"
+    "nombre": "Tricot San Felipe",
+    "comuna": "Sin comuna"
   },
   {
     "Región": "Valparaíso",
@@ -202,10 +202,10 @@
     "Direccionok": "Portus 266,San Felipe,Chile",
     "Latitud": -32.7453681,
     "Longitud": -70.7210429,
-    "comuna": "San Felipe",
     "lat": -32.7453681,
     "lng": -70.7210429,
-    "nombre": "Tricot Connect San Felipe"
+    "nombre": "Tricot Connect San Felipe",
+    "comuna": "Sin comuna"
   },
   {
     "Región": "Valparaíso",
@@ -218,10 +218,10 @@
     "Direccionok": "Esmeralda 231,Los Andes,Chile",
     "Latitud": -32.8329912,
     "Longitud": -70.5986572,
-    "comuna": "Los Andes",
     "lat": -32.8329912,
     "lng": -70.5986572,
-    "nombre": "Tricot Los Andes"
+    "nombre": "Tricot Los Andes",
+    "comuna": "Sin comuna"
   },
   {
     "Región": "Valparaíso",
@@ -234,10 +234,10 @@
     "Direccionok": "O'Higgins 270-C,Los Andes,Chile",
     "Latitud": -32.8342005,
     "Longitud": -70.598479,
-    "comuna": "Los Andes",
     "lat": -32.8342005,
     "lng": -70.598479,
-    "nombre": "Tricot Connect Los Andes"
+    "nombre": "Tricot Connect Los Andes",
+    "comuna": "Sin comuna"
   },
   {
     "Región": "Valparaíso",
@@ -250,10 +250,10 @@
     "Direccionok": "Ortiz de Rosas 612, Local 2,La Ligua,Chile",
     "Latitud": -32.4518023,
     "Longitud": -71.2525342,
-    "comuna": "La Ligua",
     "lat": -32.4518023,
     "lng": -71.2525342,
-    "nombre": "Tricot La Ligua"
+    "nombre": "Tricot La Ligua",
+    "comuna": "Sin comuna"
   },
   {
     "Región": "Valparaíso",
@@ -266,10 +266,10 @@
     "Direccionok": "Prat 125,Quillota,Chile",
     "Latitud": -32.876898,
     "Longitud": -71.2438352,
-    "comuna": "Quillota",
     "lat": -32.876898,
     "lng": -71.2438352,
-    "nombre": "Tricot Quillota"
+    "nombre": "Tricot Quillota",
+    "comuna": "Sin comuna"
   },
   {
     "Región": "Valparaíso",
@@ -282,10 +282,10 @@
     "Direccionok": "Aldunate 250,La Calera,Chile",
     "Latitud": -32.7866417,
     "Longitud": -71.191078,
-    "comuna": "La Calera",
     "lat": -32.7866417,
     "lng": -71.191078,
-    "nombre": "Tricot La Calera"
+    "nombre": "Tricot La Calera",
+    "comuna": "Sin comuna"
   },
   {
     "Región": "Valparaíso",
@@ -298,10 +298,10 @@
     "Direccionok": "Diego Portales 822,Quilpué,Chile",
     "Latitud": -33.0470763,
     "Longitud": -71.4409067,
-    "comuna": "Quilpué",
     "lat": -33.0470763,
     "lng": -71.4409067,
-    "nombre": "Tricot Quilpué"
+    "nombre": "Tricot Quilpué",
+    "comuna": "Sin comuna"
   },
   {
     "Región": "Valparaíso",
@@ -314,10 +314,10 @@
     "Direccionok": "Av. Valparaíso 625,Villa Alemana,Chile",
     "Latitud": -33.0456227,
     "Longitud": -71.3903205,
-    "comuna": "Villa Alemana",
     "lat": -33.0456227,
     "lng": -71.3903205,
-    "nombre": "Tricot Villa Alemana"
+    "nombre": "Tricot Villa Alemana",
+    "comuna": "Sin comuna"
   },
   {
     "Región": "Valparaíso",
@@ -330,10 +330,10 @@
     "Direccionok": "Av. Valparaíso 633,Villa Alemana,Chile",
     "Latitud": -33.0456227,
     "Longitud": -71.3903205,
-    "comuna": "Villa Alemana",
     "lat": -33.0456227,
     "lng": -71.3903205,
-    "nombre": "Tricot Connect Villa Alemana"
+    "nombre": "Tricot Connect Villa Alemana",
+    "comuna": "Sin comuna"
   },
   {
     "Región": "Valparaíso",
@@ -346,10 +346,10 @@
     "Direccionok": "Condell 1435,Valparaíso,Chile",
     "Latitud": -33.0466714,
     "Longitud": -71.6199858,
-    "comuna": "Valparaíso",
     "lat": -33.0466714,
     "lng": -71.6199858,
-    "nombre": "Tricot Valparaíso"
+    "nombre": "Tricot Valparaíso",
+    "comuna": "Sin comuna"
   },
   {
     "Región": "Valparaíso",
@@ -362,10 +362,10 @@
     "Direccionok": "Esmeralda 1154, Local 4,Valparaíso,Chile",
     "Latitud": -33.0637519,
     "Longitud": -71.5958786,
-    "comuna": "Valparaíso",
     "lat": -33.0637519,
     "lng": -71.5958786,
-    "nombre": "Tricot Connect Valparaíso"
+    "nombre": "Tricot Connect Valparaíso",
+    "comuna": "Sin comuna"
   },
   {
     "Región": "Valparaíso",
@@ -378,10 +378,10 @@
     "Direccionok": "Valparaíso 360,Viña del Mar,Chile",
     "Latitud": -33.0258875,
     "Longitud": -71.5463541,
-    "comuna": "Viña Del Mar",
     "lat": -33.0258875,
     "lng": -71.5463541,
-    "nombre": "Tricot Viña del Mar"
+    "nombre": "Tricot Viña del Mar",
+    "comuna": "Sin comuna"
   },
   {
     "Región": "Valparaíso",
@@ -394,10 +394,10 @@
     "Direccionok": "Av. Valparaíso 1070,Viña del Mar,Chile",
     "Latitud": -33.0264444,
     "Longitud": -71.5471236,
-    "comuna": "Viña Del Mar",
     "lat": -33.0264444,
     "lng": -71.5471236,
-    "nombre": "Tricot Mall Viña del Mar"
+    "nombre": "Tricot Mall Viña del Mar",
+    "comuna": "Sin comuna"
   },
   {
     "Región": "Valparaíso",
@@ -410,10 +410,10 @@
     "Direccionok": "Camino Internacional 2440,Viña del Mar,Chile",
     "Latitud": -32.9853423,
     "Longitud": -71.4991806,
-    "comuna": "Viña Del Mar",
     "lat": -32.9853423,
     "lng": -71.4991806,
-    "nombre": "Tricot Outlet Viña del Mar"
+    "nombre": "Tricot Outlet Viña del Mar",
+    "comuna": "Sin comuna"
   },
   {
     "Región": "Valparaíso",
@@ -426,10 +426,10 @@
     "Direccionok": "Av. Libertad 1348,Viña del Mar,Chile",
     "Latitud": -33.0088361,
     "Longitud": -71.5472973,
-    "comuna": "Viña Del Mar",
     "lat": -33.0088361,
     "lng": -71.5472973,
-    "nombre": "Tricot Viña 15 Norte"
+    "nombre": "Tricot Viña 15 Norte",
+    "comuna": "Sin comuna"
   },
   {
     "Región": "Región Metropolitana",
@@ -442,10 +442,10 @@
     "Direccionok": "Ahumada 346, Local 7-8,Santiago,Chile",
     "Latitud": -33.4391086,
     "Longitud": -70.6511825,
-    "comuna": "Santiago",
     "lat": -33.4391086,
     "lng": -70.6511825,
-    "nombre": "Tricot Ahumada"
+    "nombre": "Tricot Ahumada",
+    "comuna": "Santiago"
   },
   {
     "Región": "Región Metropolitana",
@@ -458,10 +458,10 @@
     "Direccionok": "Puente 633,Santiago,Chile",
     "Latitud": -33.4357394,
     "Longitud": -70.6513971,
-    "comuna": "Santiago",
     "lat": -33.4357394,
     "lng": -70.6513971,
-    "nombre": "Tricot Puente"
+    "nombre": "Tricot Puente",
+    "comuna": "Santiago"
   },
   {
     "Región": "Región Metropolitana",
@@ -474,10 +474,10 @@
     "Direccionok": "Patronato 318,Santiago,Chile",
     "Latitud": -33.4297359,
     "Longitud": -70.6442827,
-    "comuna": "Santiago",
     "lat": -33.4297359,
     "lng": -70.6442827,
-    "nombre": "Tricot Patronato"
+    "nombre": "Tricot Patronato",
+    "comuna": "Recoleta"
   },
   {
     "Región": "Región Metropolitana",
@@ -490,10 +490,10 @@
     "Direccionok": "Concha y Toro 110,Santiago,Chile",
     "Latitud": -33.4468276,
     "Longitud": -70.6657436,
-    "comuna": "Santiago",
     "lat": -33.4468276,
     "lng": -70.6657436,
-    "nombre": "Tricot Concha y Toro"
+    "nombre": "Tricot Concha y Toro",
+    "comuna": "Santiago"
   },
   {
     "Región": "Región Metropolitana",
@@ -506,10 +506,10 @@
     "Direccionok": "Irarrázaval 2401, Local 11,Ñuñoa,Chile",
     "Latitud": -33.4543725,
     "Longitud": -70.6062588,
-    "comuna": "Ñuñoa",
     "lat": -33.4543725,
     "lng": -70.6062588,
-    "nombre": "Tricot Irarrázaval"
+    "nombre": "Tricot Irarrázaval",
+    "comuna": "Ñuñoa"
   },
   {
     "Región": "Región Metropolitana",
@@ -522,10 +522,10 @@
     "Direccionok": "Gran Avda. José Miguel Carrera 6150,San Miguel,Chile",
     "Latitud": -33.5125768,
     "Longitud": -70.6559244,
-    "comuna": "San Miguel",
     "lat": -33.5125768,
     "lng": -70.6559244,
-    "nombre": "Tricot Gran Avenida"
+    "nombre": "Tricot Gran Avenida",
+    "comuna": "San Miguel"
   },
   {
     "Región": "Región Metropolitana",
@@ -538,10 +538,10 @@
     "Direccionok": "Manquehue Sur 31, Local 149,Las Condes,Chile",
     "Latitud": -33.409769,
     "Longitud": -70.5678772,
-    "comuna": "Las Condes",
     "lat": -33.409769,
     "lng": -70.5678772,
-    "nombre": "Tricot Apumanque"
+    "nombre": "Tricot Apumanque",
+    "comuna": "Las Condes"
   },
   {
     "Región": "Región Metropolitana",
@@ -554,10 +554,10 @@
     "Direccionok": "Av. Manquehue Sur 31, Local 113,Las Condes,Chile",
     "Latitud": -33.409769,
     "Longitud": -70.5678772,
-    "comuna": "Las Condes",
     "lat": -33.409769,
     "lng": -70.5678772,
-    "nombre": "Tricot Apumanque Anexo"
+    "nombre": "Tricot Apumanque Anexo",
+    "comuna": "Las Condes"
   },
   {
     "Región": "Región Metropolitana",
@@ -570,10 +570,10 @@
     "Direccionok": "Padre Hurtado Sur 875, Lc 112,Las Condes,Chile",
     "Latitud": -33.415114,
     "Longitud": -70.5406024,
-    "comuna": "Las Condes",
     "lat": -33.415114,
     "lng": -70.5406024,
-    "nombre": "Tricot Los Dominicos"
+    "nombre": "Tricot Los Dominicos",
+    "comuna": "Las Condes"
   },
   {
     "Región": "Región Metropolitana",
@@ -586,10 +586,10 @@
     "Direccionok": "Av. Pajaritos 1948, Local 1,Maipú,Chile",
     "Latitud": -33.5094513,
     "Longitud": -70.7575978,
-    "comuna": "Maipú",
     "lat": -33.5094513,
     "lng": -70.7575978,
-    "nombre": "Tricot Maipú"
+    "nombre": "Tricot Maipú",
+    "comuna": "Maipú"
   },
   {
     "Región": "Región Metropolitana",
@@ -602,10 +602,10 @@
     "Direccionok": "Av. Pajaritos 1948,Maipú,Chile",
     "Latitud": -33.5096186,
     "Longitud": -70.7581975,
-    "comuna": "Maipú",
     "lat": -33.5096186,
     "lng": -70.7581975,
-    "nombre": "Tricot Mall Plaza Oeste"
+    "nombre": "Tricot Mall Plaza Oeste",
+    "comuna": "Maipú"
   },
   {
     "Región": "Región Metropolitana",
@@ -618,10 +618,10 @@
     "Direccionok": "Eyzaguirre 609,San Bernardo,Chile",
     "Latitud": -33.5795154,
     "Longitud": -70.7008449,
-    "comuna": "San Bernardo",
     "lat": -33.5795154,
     "lng": -70.7008449,
-    "nombre": "Tricot San Bernardo"
+    "nombre": "Tricot San Bernardo",
+    "comuna": "San Bernardo"
   },
   {
     "Región": "O'Higgins",
@@ -634,10 +634,10 @@
     "Direccionok": "O'Higgins 646,San Fernando,Chile",
     "Latitud": -34.5956242,
     "Longitud": -70.9824616,
-    "comuna": "San Fernando",
     "lat": -34.5956242,
     "lng": -70.9824616,
-    "nombre": "Tricot San Fernando"
+    "nombre": "Tricot San Fernando",
+    "comuna": "Sin comuna"
   },
   {
     "Región": "O'Higgins",
@@ -650,10 +650,10 @@
     "Direccionok": "Av. O'Higgins 720,San Fernando,Chile",
     "Latitud": -34.5985112,
     "Longitud": -70.9881189,
-    "comuna": "San Fernando",
     "lat": -34.5985112,
     "lng": -70.9881189,
-    "nombre": "Tricot Connect San Fernando"
+    "nombre": "Tricot Connect San Fernando",
+    "comuna": "Sin comuna"
   },
   {
     "Región": "O'Higgins",
@@ -666,10 +666,10 @@
     "Direccionok": "Prat 220,Rengo,Chile",
     "Latitud": -34.3973242,
     "Longitud": -70.8515614,
-    "comuna": "Rengo",
     "lat": -34.3973242,
     "lng": -70.8515614,
-    "nombre": "Tricot Rengo"
+    "nombre": "Tricot Rengo",
+    "comuna": "Sin comuna"
   },
   {
     "Región": "O'Higgins",
@@ -682,10 +682,10 @@
     "Direccionok": "Prat 211,Rengo,Chile",
     "Latitud": -34.4059501,
     "Longitud": -70.8590892,
-    "comuna": "Rengo",
     "lat": -34.4059501,
     "lng": -70.8590892,
-    "nombre": "Tricot Connect Rengo"
+    "nombre": "Tricot Connect Rengo",
+    "comuna": "Sin comuna"
   },
   {
     "Región": "Maule",
@@ -698,10 +698,10 @@
     "Direccionok": "Arturo Prat 2370,San Javier,Chile",
     "Latitud": -35.5942515,
     "Longitud": -71.7352408,
-    "comuna": "San Javier",
     "lat": -35.5942515,
     "lng": -71.7352408,
-    "nombre": "Tricot San Javier"
+    "nombre": "Tricot San Javier",
+    "comuna": "Sin comuna"
   },
   {
     "Región": "Maule",
@@ -714,10 +714,10 @@
     "Direccionok": "Av. Independencia 699,San Carlos,Chile",
     "Latitud": -36.4565978,
     "Longitud": -71.7643807,
-    "comuna": "San Carlos",
     "lat": -36.4565978,
     "lng": -71.7643807,
-    "nombre": "Tricot San Carlos"
+    "nombre": "Tricot San Carlos",
+    "comuna": "Sin comuna"
   },
   {
     "Región": "Maule",
@@ -730,10 +730,10 @@
     "Direccionok": "Serrano 436,San Carlos,Chile",
     "Latitud": -36.4325633,
     "Longitud": -71.9598523,
-    "comuna": "San Carlos",
     "lat": -36.4325633,
     "lng": -71.9598523,
-    "nombre": "Tricot Connect San Carlos"
+    "nombre": "Tricot Connect San Carlos",
+    "comuna": "Sin comuna"
   },
   {
     "Región": "Maule",
@@ -746,10 +746,10 @@
     "Direccionok": "Serrano 395,Talca,Chile",
     "Latitud": -35.5220376,
     "Longitud": -71.6880563,
-    "comuna": "Talca",
     "lat": -35.5220376,
     "lng": -71.6880563,
-    "nombre": "Tricot Talca"
+    "nombre": "Tricot Talca",
+    "comuna": "Sin comuna"
   },
   {
     "Región": "Maule",
@@ -762,10 +762,10 @@
     "Direccionok": "Av. Lautaro 421,Talca,Chile",
     "Latitud": -35.4524321,
     "Longitud": -72.2784961,
-    "comuna": "Talca",
     "lat": -35.4524321,
     "lng": -72.2784961,
-    "nombre": "Tricot Talca 2"
+    "nombre": "Tricot Talca 2",
+    "comuna": "Sin comuna"
   },
   {
     "Región": "Bío Bío",
@@ -778,10 +778,10 @@
     "Direccionok": "Barros Arana 586,Concepción,Chile",
     "Latitud": -36.8276449,
     "Longitud": -73.0531438,
-    "comuna": "Concepción",
     "lat": -36.8276449,
     "lng": -73.0531438,
-    "nombre": "Tricot Concepción"
+    "nombre": "Tricot Concepción",
+    "comuna": "Sin comuna"
   },
   {
     "Región": "Bío Bío",
@@ -794,10 +794,10 @@
     "Direccionok": "Av. Bulnes 498,Concepción,Chile",
     "Latitud": -36.8170221,
     "Longitud": -73.0462194,
-    "comuna": "Concepción",
     "lat": -36.8170221,
     "lng": -73.0462194,
-    "nombre": "Tricot Concepción 2"
+    "nombre": "Tricot Concepción 2",
+    "comuna": "Sin comuna"
   },
   {
     "Región": "Bío Bío",
@@ -810,10 +810,10 @@
     "Direccionok": "Manuel Montt 628,Chillán,Chile",
     "Latitud": -36.605637,
     "Longitud": -72.088417,
-    "comuna": "Chillán",
     "lat": -36.605637,
     "lng": -72.088417,
-    "nombre": "Tricot Chillán"
+    "nombre": "Tricot Chillán",
+    "comuna": "Sin comuna"
   },
   {
     "Región": "Bío Bío",
@@ -826,10 +826,10 @@
     "Direccionok": "Balmaceda 86,Los Ángeles,Chile",
     "Latitud": -37.4660534,
     "Longitud": -72.3409474,
-    "comuna": "Los Ángeles",
     "lat": -37.4660534,
     "lng": -72.3409474,
-    "nombre": "Tricot Los Ángeles"
+    "nombre": "Tricot Los Ángeles",
+    "comuna": "Sin comuna"
   },
   {
     "Región": "Bío Bío",
@@ -842,10 +842,10 @@
     "Direccionok": "Balmaceda 110,Los Ángeles,Chile",
     "Latitud": -37.4660534,
     "Longitud": -72.3409474,
-    "comuna": "Los Ángeles",
     "lat": -37.4660534,
     "lng": -72.3409474,
-    "nombre": "Tricot Los Ángeles 2"
+    "nombre": "Tricot Los Ángeles 2",
+    "comuna": "Sin comuna"
   },
   {
     "Región": "Araucanía",
@@ -858,10 +858,10 @@
     "Direccionok": "Manuel Rodríguez 1055,Temuco,Chile",
     "Latitud": -38.737296,
     "Longitud": -72.5834127,
-    "comuna": "Temuco",
     "lat": -38.737296,
     "lng": -72.5834127,
-    "nombre": "Tricot Temuco"
+    "nombre": "Tricot Temuco",
+    "comuna": "Sin comuna"
   },
   {
     "Región": "Araucanía",
@@ -874,10 +874,10 @@
     "Direccionok": "Pedro de Valdivia 845,Villarrica,Chile",
     "Latitud": -39.2839632,
     "Longitud": -72.226803,
-    "comuna": "Villarrica",
     "lat": -39.2839632,
     "lng": -72.226803,
-    "nombre": "Tricot Villarrica"
+    "nombre": "Tricot Villarrica",
+    "comuna": "Sin comuna"
   },
   {
     "Región": "Los Ríos",
@@ -890,10 +890,10 @@
     "Direccionok": "Independencia 539,Valdivia,Chile",
     "Latitud": -39.8121146,
     "Longitud": -73.2465689,
-    "comuna": "Valdivia",
     "lat": -39.8121146,
     "lng": -73.2465689,
-    "nombre": "Tricot Valdivia"
+    "nombre": "Tricot Valdivia",
+    "comuna": "Sin comuna"
   },
   {
     "Región": "Los Lagos",
@@ -906,10 +906,10 @@
     "Direccionok": "Benavente 1075, Local 1510,Puerto Montt,Chile",
     "Latitud": -41.4713886,
     "Longitud": -72.9431201,
-    "comuna": "Puerto Montt",
     "lat": -41.4713886,
     "lng": -72.9431201,
-    "nombre": "Tricot Puerto Montt"
+    "nombre": "Tricot Puerto Montt",
+    "comuna": "Sin comuna"
   },
   {
     "Región": "Los Lagos",
@@ -922,9 +922,9 @@
     "Direccionok": "Balmaceda 86,Puerto Montt,Chile",
     "Latitud": -41.4685776,
     "Longitud": -72.9468345,
-    "comuna": "Puerto Montt",
     "lat": -41.4685776,
     "lng": -72.9468345,
-    "nombre": "Tricot Puerto Montt 2"
+    "nombre": "Tricot Puerto Montt 2",
+    "comuna": "Sin comuna"
   }
 ]

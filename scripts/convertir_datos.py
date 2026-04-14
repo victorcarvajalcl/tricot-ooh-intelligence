@@ -1,6 +1,8 @@
 import pandas as pd
 import json
 import os
+from shapely.geometry import Point
+import geopandas as gpd
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(BASE_DIR, "data")
@@ -15,28 +17,38 @@ def limpiar_comuna(c):
         return "Sin comuna"
     return str(c).strip().title()
 
+# ================= CARGAR COMUNAS
+comunas = gpd.read_file(os.path.join(DATA_DIR, "comunas.geojson"))
+comunas = comunas.to_crs(epsg=4326)
+
+def obtener_comuna(lat, lng):
+    punto = Point(lng, lat)
+    for _, row in comunas.iterrows():
+        if row.geometry.contains(punto):
+            return row.get("NOM_COM") or row.get("Comuna")
+    return "Sin comuna"
 
 # ================= SOPORTES
 df = pd.read_csv(os.path.join(DATA_DIR, "soportes_vista_actual.csv"))
 
-# detectar columnas automáticamente
 col_comuna = next((c for c in df.columns if 'comuna' in c.lower()), None)
 col_lat = next((c for c in df.columns if 'lat' in c.lower()), None)
 col_lng = next((c for c in df.columns if 'lng' in c.lower() or 'lon' in c.lower()), None)
 col_categoria = next((c for c in df.columns if 'categoria' in c.lower()), None)
 col_tipo = next((c for c in df.columns if 'tipo' in c.lower()), None)
+col_nombre = next((c for c in df.columns if 'name' in c.lower() or 'nombre' in c.lower()), None)
 
-# crear campos estándar
-df['comuna'] = df[col_comuna].apply(limpiar_comuna) if col_comuna else "Sin comuna"
 df['lat'] = df[col_lat]
 df['lng'] = df[col_lng]
-df['categoria'] = df[col_categoria].apply(limpiar_texto) if col_categoria else ""
+df['nombre'] = df[col_nombre].apply(limpiar_texto) if col_nombre else "Soporte"
+df['categoria'] = df[col_categoria].apply(limpiar_texto) if col_categoria else "Otros"
 df['tipo'] = df[col_tipo].apply(limpiar_texto) if col_tipo else ""
 
-# eliminar filas sin coordenadas
 df = df.dropna(subset=['lat','lng'])
 
-# 🔥 SOLUCIÓN CLAVE → eliminar NaN
+# 🔥 ASIGNAR COMUNA REAL
+df['comuna'] = df.apply(lambda r: obtener_comuna(r['lat'], r['lng']), axis=1)
+
 df = df.fillna("")
 
 with open(os.path.join(DATA_DIR, "soportes.json"), "w") as f:
@@ -44,23 +56,23 @@ with open(os.path.join(DATA_DIR, "soportes.json"), "w") as f:
 
 print("✅ soportes.json generado")
 
-
 # ================= TRICOT
 df2 = pd.read_excel(os.path.join(DATA_DIR, "tricot_geocodificado.xlsx"))
 
 col_comuna2 = next((c for c in df2.columns if 'comuna' in c.lower()), None)
 col_lat2 = next((c for c in df2.columns if 'lat' in c.lower()), None)
 col_lng2 = next((c for c in df2.columns if 'lng' in c.lower() or 'lon' in c.lower()), None)
-col_nombre = next((c for c in df2.columns if 'nombre' in c.lower()), None)
+col_nombre2 = next((c for c in df2.columns if 'nombre' in c.lower()), None)
 
-df2['comuna'] = df2[col_comuna2].apply(limpiar_comuna) if col_comuna2 else "Sin comuna"
 df2['lat'] = df2[col_lat2]
 df2['lng'] = df2[col_lng2]
-df2['nombre'] = df2[col_nombre].apply(limpiar_texto) if col_nombre else "Tienda"
+df2['nombre'] = df2[col_nombre2].apply(limpiar_texto) if col_nombre2 else "Tienda"
 
 df2 = df2.dropna(subset=['lat','lng'])
 
-# 🔥 SOLUCIÓN CLAVE → eliminar NaN
+# 🔥 COMUNA REAL
+df2['comuna'] = df2.apply(lambda r: obtener_comuna(r['lat'], r['lng']), axis=1)
+
 df2 = df2.fillna("")
 
 with open(os.path.join(DATA_DIR, "tricot.json"), "w") as f:
