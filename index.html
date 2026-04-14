@@ -12,12 +12,17 @@
 <style>
 body{margin:0;font-family:Arial;background:#0b1220;color:#fff}
 .app{display:flex;height:100vh}
+
 .sidebar{width:380px;background:#0b1324;padding:15px;overflow:auto}
 .map-wrap{flex:1}
 #map{height:100%}
 
 .stat{background:#081a3b;padding:10px;border-radius:10px;margin-bottom:8px}
-input,select,button{width:100%;padding:10px;margin-bottom:10px;border-radius:10px;background:#091a36;color:#fff;border:none}
+
+input,select,button{
+width:100%;padding:10px;margin-bottom:10px;
+border-radius:10px;background:#091a36;color:#fff;border:none
+}
 
 .chips{display:flex;gap:8px;flex-wrap:wrap}
 .chip{padding:8px 12px;background:#0a1b3a;border-radius:999px;cursor:pointer}
@@ -79,10 +84,15 @@ let h3,h6,h8,capaComunas;
 let capaPts=L.markerClusterGroup();
 
 const layersState={
-soportes:true,tiendas:true,h3:true,h6:true,h8:false,comunas:true
+soportes:true,
+tiendas:true,
+h3:true,
+h6:true,
+h8:false,
+comunas:true
 };
 
-// ================= LOAD DATA
+// ================= CARGA SINCRONIZADA
 async function loadData(){
 
 const [s,t,h3d,h6d,h8d,cd] = await Promise.all([
@@ -96,10 +106,13 @@ fetch('data/comunas.geojson').then(r=>r.json())
 
 soportes=s;
 filtrados=s;
+
 tiendas=t;
 tiendasFiltradas=t;
 
-h3=h3d;h6=h6d;h8=h8d;
+h3=h3d;
+h6=h6d;
+h8=h8d;
 
 cargarComunas(cd);
 
@@ -114,9 +127,9 @@ capaComunas=L.geoJSON(data,{
 style:{color:'#1e293b',weight:1,fillOpacity:0.03},
 onEachFeature:(f,l)=>{
 
-const n=f.properties.NOM_COM||f.properties.Comuna;
+const nombre=f.properties.NOM_COM||f.properties.Comuna;
 
-l.bindTooltip(n);
+l.bindTooltip(nombre);
 
 l.on('mouseover',()=>l.setStyle({color:'#22c55e',weight:3,fillOpacity:0.15,fillColor:'#22c55e'}));
 l.on('mouseout',()=>capaComunas.resetStyle(l));
@@ -191,14 +204,20 @@ capaPts=L.markerClusterGroup();
 // SOPORTES
 if(layersState.soportes){
 filtrados.forEach(p=>{
-const m=L.marker([p.lat,p.lng]);
+const m=L.circleMarker([p.lat,p.lng],{
+radius:5,
+color:'#fff',
+fillColor:'#ef4444',
+fillOpacity:1
+});
 
 m.bindPopup(`
 <b>📍 SOPORTE</b><br>
-${p.nombre||''}<br>
-${p.comuna||''}<br>
-${p.categoria||''}<br>
-${p.tipo||''}
+${p.nombre||'Sin nombre'}<br>
+${p.direccion||'-'}<br>
+${p.comuna||'-'}<br>
+${p.categoria||'-'}<br>
+${p.tipo||'-'}
 `);
 
 capaPts.addLayer(m);
@@ -208,6 +227,8 @@ capaPts.addLayer(m);
 // TIENDAS
 if(layersState.tiendas){
 tiendasFiltradas.forEach(t=>{
+if(!t.lat||!t.lng) return;
+
 const m=L.marker([t.lat,t.lng],{
 icon:L.icon({
 iconUrl:'https://cdn-icons-png.flaticon.com/512/1077/1077114.png',
@@ -215,12 +236,23 @@ iconSize:[28,28]
 })
 });
 
-m.bindPopup(`<b>🏬 TIENDA</b><br>${t.nombre}<br>${t.comuna}`);
+m.bindPopup(`
+<b>🏬 TIENDA TRICOT</b><br>
+${t.nombre||'-'}<br>
+${t.comuna||'-'}
+`);
+
 capaPts.addLayer(m);
 });
 }
 
 map.addLayer(capaPts);
+
+// COMUNAS
+if(capaComunas){
+if(layersState.comunas && !map.hasLayer(capaComunas)) map.addLayer(capaComunas);
+if(!layersState.comunas && map.hasLayer(capaComunas)) map.removeLayer(capaComunas);
+}
 
 // HEX
 renderHex();
@@ -236,8 +268,9 @@ new Set(filtrados.map(s=>s.comuna)).size;
 function renderHex(){
 
 if(layersState.h3 && h3){
-L.geoJSON(h3,{pane:'hex',
-style:{color:'#22c55e',fillOpacity:0.25},
+L.geoJSON(h3,{
+pane:'hex',
+style:{color:'#22c55e',fillOpacity:0.2},
 onEachFeature:(f,l)=>{
 l.bindPopup(`H3<br>Soportes:${f.properties.soportes||0}`);
 }
@@ -245,7 +278,8 @@ l.bindPopup(`H3<br>Soportes:${f.properties.soportes||0}`);
 }
 
 if(layersState.h6 && h6){
-L.geoJSON(h6,{pane:'hex',
+L.geoJSON(h6,{
+pane:'hex',
 style:{color:'#2563eb',fillOpacity:0.3},
 onEachFeature:(f,l)=>{
 l.bindPopup(`H6<br>Soportes:${f.properties.soportes||0}`);
@@ -254,7 +288,8 @@ l.bindPopup(`H6<br>Soportes:${f.properties.soportes||0}`);
 }
 
 if(layersState.h8 && h8){
-L.geoJSON(h8,{pane:'hex',
+L.geoJSON(h8,{
+pane:'hex',
 style:{color:'#9333ea',fillOpacity:0.25},
 onEachFeature:(f,l)=>{
 l.bindPopup(`H8<br>Soportes:${f.properties.soportes||0}`);
