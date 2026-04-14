@@ -15,18 +15,11 @@ body{margin:0;font-family:Arial;background:#0b1220;color:#fff}
 #map{flex:1}
 
 .stat{background:#081a3b;padding:10px;border-radius:10px;margin-bottom:8px}
+
 select,input{width:100%;padding:10px;margin-bottom:10px;border-radius:10px;background:#091a36;color:#fff;border:none}
 
-.btn{
-margin-top:8px;
-padding:8px;
-background:#2563eb;
-border:none;
-border-radius:6px;
-color:white;
-cursor:pointer;
-width:100%;
-}
+.chip{display:inline-block;padding:8px 12px;margin:3px;background:#0a1b3a;border-radius:20px;cursor:pointer}
+.chip.active{background:#2563eb}
 </style>
 </head>
 
@@ -45,12 +38,16 @@ width:100%;
 <select id="comuna"></select>
 <select id="categoria"></select>
 
-<button class="btn" onclick="reset()">Reset</button>
+<button onclick="reset()">Reset</button>
 
-<hr>
-
-<button class="btn" onclick="descargarComuna()">📄 Informe por comuna</button>
-<button class="btn" onclick="descargarTienda()">📄 Informe tienda seleccionada</button>
+<div>
+<span class="chip active" data-layer="soportes">Soportes</span>
+<span class="chip active" data-layer="tiendas">Tiendas</span>
+<span class="chip active" data-layer="h3">H3</span>
+<span class="chip active" data-layer="h6">H6</span>
+<span class="chip" data-layer="h8">H8</span>
+<span class="chip active" data-layer="comunas">Comunas</span>
+</div>
 
 </div>
 
@@ -68,37 +65,92 @@ L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').ad
 
 let soportes=[],tiendas=[];
 let filtrados=[],tiendasFiltradas=[];
-let tiendaSeleccionada=null;
 
-let cluster=L.markerClusterGroup();
+// 🔥 CLUSTER MEJORADO (visual)
+let cluster=L.markerClusterGroup({
+showCoverageOnHover:false,
+zoomToBoundsOnClick:true,
+spiderfyOnMaxZoom:true,
+disableClusteringAtZoom:17,
 
-// ICONO TIENDA (igual que el tuyo)
+iconCreateFunction: function(cluster) {
+
+const count = cluster.getChildCount();
+
+return L.divIcon({
+html:`<div style="
+background: radial-gradient(circle, rgba(255,45,85,1) 0%, rgba(255,45,85,0.7) 60%, rgba(255,45,85,0.3) 100%);
+width:42px;
+height:42px;
+border-radius:50%;
+display:flex;
+align-items:center;
+justify-content:center;
+color:white;
+font-weight:bold;
+border:3px solid white;
+box-shadow:0 0 12px rgba(0,0,0,0.6);
+">${count}</div>`,
+className:''
+});
+
+}
+});
+
+let h3Layer,h6Layer,h8Layer;
+
+const layersState={
+soportes:true,tiendas:true,h3:true,h6:true,h8:false
+};
+
+// 🟦 ICONO TIENDA (ligeramente mejorado)
 const tiendaIcon = L.divIcon({
 html:`<div style="
 background:#2563eb;
-width:18px;
-height:18px;
+width:22px;
+height:22px;
 border-radius:50%;
 border:3px solid white;
-box-shadow:0 0 6px rgba(0,0,0,0.5);
+box-shadow:0 0 10px rgba(0,0,0,0.8);
 "></div>`,
 className:''
 });
 
 async function load(){
 
-soportes=await fetch('data/soportes_h3.json').then(r=>r.json());
-tiendas=await fetch('data/tricot.json').then(r=>r.json());
+const [s,t,h3,h6,h8]=await Promise.all([
+fetch('data/soportes_h3.json').then(r=>r.json()),
+fetch('data/tricot.json').then(r=>r.json()),
+fetch('data/h3.geojson').then(r=>r.json()),
+fetch('data/h6.geojson').then(r=>r.json()),
+fetch('data/h8.geojson').then(r=>r.json())
+]);
 
-filtrados=soportes;
-tiendasFiltradas=tiendas;
+soportes=s;
+tiendas=t;
+
+filtrados=s;
+tiendasFiltradas=t;
 
 init();
+renderHex(h3,h6,h8);
 render();
+
+map.on('zoomend', controlarZoom);
 
 }
 
-// INIT
+function controlarZoom(){
+
+const z=map.getZoom();
+
+layersState.h3 = z>=10 && z<=12;
+layersState.h6 = z>=13 && z<=15;
+layersState.h8 = z>=16;
+
+render();
+}
+
 function init(){
 
 const comunas=[...new Set(soportes.map(s=>s.comuna).filter(c=>c))];
@@ -111,9 +163,16 @@ document.getElementById('categoria').innerHTML='<option value="">Todas</option>'
 document.getElementById(id).addEventListener('input',filtrar);
 });
 
+document.querySelectorAll('.chip').forEach(c=>{
+c.onclick=()=>{
+const k=c.dataset.layer;
+layersState[k]=!layersState[k];
+c.classList.toggle('active');
+render();
+};
+});
 }
 
-// FILTRO
 function filtrar(){
 
 const q=document.getElementById('search').value.toLowerCase();
@@ -130,48 +189,68 @@ tiendasFiltradas=tiendas.filter(t=>
 (!comuna||t.comuna===comuna)
 );
 
+if(filtrados.length){
+const bounds=L.latLngBounds(filtrados.map(p=>[p.lat,p.lng]));
+map.fitBounds(bounds);
+}
+
 render();
 }
 
-// RENDER
 function render(){
 
 map.removeLayer(cluster);
-cluster=L.markerClusterGroup();
+cluster.clearLayers();
 
-// SOPORTES
+// 🔴 SOPORTES
+if(layersState.soportes){
+
 filtrados.forEach(p=>{
+
+const zoom=map.getZoom();
+const size = zoom>=16 ? 6 : zoom>=14 ? 4 : 3;
+
 const m=L.circleMarker([p.lat,p.lng],{
-radius:4,
+radius:size,
 color:'#fff',
-fillColor:'#ef4444',
+weight:1,
+fillColor:'#ff2d55',
 fillOpacity:1
 });
-cluster.addLayer(m);
-});
 
-// TIENDAS
+cluster.addLayer(m);
+
+});
+}
+
+// 🔵 TIENDAS
+if(layersState.tiendas){
+
 tiendasFiltradas.forEach(t=>{
 
 const m=L.marker([t.lat,t.lng],{icon:tiendaIcon});
 
-m.on('click',()=>{
-tiendaSeleccionada=t;
-});
-
 m.bindPopup(()=>{
+
 const cercanos=filtrados.filter(s=>map.distance([t.lat,t.lng],[s.lat,s.lng])<500);
 
+let nivel="🟢 Baja";
+if(cercanos.length>30) nivel="🔴 Alta";
+else if(cercanos.length>10) nivel="🟡 Media";
+
 return `
-<b>${t.nombre}</b><br>
-${t.comuna}<br>
-Soportes cercanos: ${cercanos.length}
+<b>🏬 ${t.nombre}</b><br>
+${t.comuna}<br><br>
+📊 Soportes 500m: ${cercanos.length}<br>
+Nivel: ${nivel}
 `;
+
 });
 
 cluster.addLayer(m);
 
 });
+}
 
 map.addLayer(cluster);
 
@@ -182,63 +261,12 @@ document.getElementById('totalComunas').innerText=new Set(filtrados.map(s=>s.com
 
 }
 
-// DESCARGA COMUNA
-function descargarComuna(){
+// HEX (igual que tu versión)
+function renderHex(h3,h6,h8){
 
-const comuna=document.getElementById('comuna').value;
-
-if(!comuna){
-alert("Selecciona una comuna");
-return;
-}
-
-const data=filtrados.filter(s=>s.comuna===comuna);
-
-const texto=`INFORME COMUNA
-
-Comuna: ${comuna}
-Soportes: ${data.length}
-`;
-
-descargarTXT(texto,`comuna_${comuna}.txt`);
-}
-
-// DESCARGA TIENDA
-function descargarTienda(){
-
-if(!tiendaSeleccionada){
-alert("Selecciona una tienda en el mapa");
-return;
-}
-
-const cercanos=filtrados.filter(s=>map.distance(
-[tiendaSeleccionada.lat,tiendaSeleccionada.lng],
-[s.lat,s.lng]
-)<500);
-
-const texto=`INFORME TIENDA
-
-Tienda: ${tiendaSeleccionada.nombre}
-Comuna: ${tiendaSeleccionada.comuna}
-
-Soportes cercanos: ${cercanos.length}
-`;
-
-descargarTXT(texto,`tienda_${tiendaSeleccionada.nombre}.txt`);
-}
-
-// GENERADOR TXT
-function descargarTXT(texto,nombre){
-
-const blob=new Blob([texto],{type:"text/plain"});
-const url=URL.createObjectURL(blob);
-
-const a=document.createElement("a");
-a.href=url;
-a.download=nombre;
-a.click();
-
-URL.revokeObjectURL(url);
+h3Layer=L.geoJSON(h3,{style:{color:'#22c55e',fillOpacity:0.2}}).addTo(map);
+h6Layer=L.geoJSON(h6,{style:{color:'#2563eb',fillOpacity:0.3}}).addTo(map);
+h8Layer=L.geoJSON(h8,{style:{color:'#9333ea',fillOpacity:0.25}}).addTo(map);
 
 }
 
