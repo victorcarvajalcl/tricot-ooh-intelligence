@@ -1,30 +1,35 @@
 <script>
 
 // ================= MAPA
-const map=L.map('map').setView([-33.45,-70.66],11);
-L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(map);
+const map=L.map('map',{zoomControl:true}).setView([-33.45,-70.66],11);
+
+L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{
+attribution:'© CARTO'
+}).addTo(map);
 
 // ================= DATA
 let soportes=[],tricot=[],comunas,h6;
 let filtrados=[],tricotFiltrado=[];
-
 let selectedComuna=null;
 
 // ================= CAPAS
 let capaHex=L.layerGroup().addTo(map);
 let capaComunas=L.layerGroup().addTo(map);
 let capaTricot=L.layerGroup().addTo(map);
+
 let cluster=L.markerClusterGroup({
-disableClusteringAtZoom:15
+disableClusteringAtZoom:15,
+spiderfyOnMaxZoom:true,
+showCoverageOnHover:false
 }).addTo(map);
 
-// ================= ICONOS
+// ================= ICONOS PRO
 const iconSoporte=L.divIcon({
-html:"<div style='width:12px;height:12px;background:#ef4444;border-radius:50%;border:2px solid white'></div>"
+html:"<div style='width:10px;height:10px;background:#ef4444;border-radius:50%;border:2px solid white;box-shadow:0 0 4px rgba(0,0,0,0.6)'></div>"
 });
 
 const iconTricot=L.divIcon({
-html:"<div style='font-size:30px'>🏬</div>"
+html:"<div style='font-size:30px;filter:drop-shadow(0 0 6px black)'>🏬</div>"
 });
 
 // ================= LOAD
@@ -54,7 +59,6 @@ updateDashboard();
 
 // ================= FILTRO
 function initFiltro(){
-
 let comunasUnicas=[...new Set(soportes.map(s=>clean(s.comuna)))];
 
 filtroComuna.innerHTML="<option value=''>Todas</option>";
@@ -85,28 +89,46 @@ capaTricot.clearLayers();
 capaComunas.clearLayers();
 capaHex.clearLayers();
 
-// HEX
+// ================= HEX HEATMAP
 L.geoJSON(h6,{
 style:f=>{
 let s=f.properties.soportes||0;
+
+let color=
+s>200?"#1e3a8a":
+s>100?"#2563eb":
+s>50?"#3b82f6":
+"#93c5fd";
+
 return{
-color:"#2563eb",
-fillColor:s>20?"#1d4ed8":s>10?"#3b82f6":"#93c5fd",
-fillOpacity:0.2
+color:color,
+fillColor:color,
+fillOpacity:0.35,
+weight:1
 };
+},
+onEachFeature:(f,l)=>{
+let s=f.properties.soportes||0;
+
+l.on("click",()=>{
+updateDetalle(`
+<b>Zona H6</b><br>
+Soportes: ${s}<br>
+${getInsight(s)}
+`);
+});
 }
 }).addTo(capaHex);
 
-// ================= COMUNAS
+// ================= COMUNAS SUAVES
 L.geoJSON(comunas,{
 style:{
-color:"#22c55e",
-weight:2,
-fillOpacity:0.05
+color:"#16a34a",
+weight:1,
+fillOpacity:0.03
 },
 onEachFeature:(f,l)=>{
-
-let nombre=f.properties.NOM_COM || f.properties.Comuna;
+let nombre=f.properties.NOM_COM;
 
 l.bindTooltip(nombre);
 
@@ -114,7 +136,6 @@ l.on("click",()=>{
 selectedComuna=clean(nombre);
 filtroComuna.value=selectedComuna;
 applyFilter();
-
 map.fitBounds(l.getBounds());
 });
 }
@@ -138,7 +159,7 @@ updateDetalle(`
 cluster.addLayer(m);
 });
 
-// ================= TIENDAS
+// ================= TIENDAS (SIEMPRE VISIBLES)
 tricotFiltrado.forEach(t=>{
 if(!t.lat)return;
 
@@ -158,7 +179,7 @@ ${getInsight(cercanos)}
 capaTricot.addLayer(m);
 });
 
-// ORDEN
+// ORDEN VISUAL
 capaHex.bringToBack();
 capaComunas.bringToFront();
 cluster.bringToFront();
@@ -166,49 +187,36 @@ capaTricot.bringToFront();
 
 }
 
-// ================= DASHBOARD BI
+// ================= DASHBOARD
 function updateDashboard(){
 
-let totalSoportes=filtrados.length;
-let totalTiendas=tricotFiltrado.length;
+let totalS=filtrados.length;
+let totalT=tricotFiltrado.length;
 
-// KPI FIX
-kpiSoportes.innerText="Soportes: "+totalSoportes;
-kpiTiendas.innerText="Tiendas: "+totalTiendas;
+kpiSoportes.innerText="Soportes: "+totalS;
+kpiTiendas.innerText="Tiendas: "+totalT;
 
-// INSIGHT GLOBAL
-let insight="";
-
-if(totalSoportes>2000){
-insight="🔥 Alta saturación publicitaria";
-}else if(totalSoportes>800){
-insight="⚡ Cobertura equilibrada";
-}else{
-insight="🧊 Oportunidad de crecimiento";
-}
+let insight=
+totalS>2000?"🔥 Saturación alta":
+totalS>800?"⚡ Mercado activo":
+"🧊 Oportunidad";
 
 detalle.innerHTML=`
 <b>Resumen</b><br>
-Comuna: ${selectedComuna || "Todas"}<br>
-Soportes: ${totalSoportes}<br>
-Tiendas: ${totalTiendas}<br>
-<br>
-💡 ${insight}
+Comuna: ${selectedComuna||"Todas"}<br>
+Soportes: ${totalS}<br>
+Tiendas: ${totalT}<br>
+<br>💡 ${insight}
 `;
 }
 
 // ================= UTILS
-function clean(str){
-return (str||"").toLowerCase().trim();
-}
-
-function updateDetalle(txt){
-detalle.innerHTML=txt;
-}
+function clean(s){return (s||"").toLowerCase().trim();}
+function updateDetalle(t){detalle.innerHTML=t;}
 
 function getInsight(n){
-if(n>50)return "🔥 Saturado";
-if(n>20)return "⚡ Medio";
+if(n>100)return "🔥 Saturado";
+if(n>50)return "⚡ Medio";
 return "🧊 Oportunidad";
 }
 
