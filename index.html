@@ -115,7 +115,7 @@ html:"<div style='width:10px;height:10px;background:#ef4444;border-radius:50%;bo
 });
 
 const iconTricot=L.divIcon({
-html:"<div style='font-size:30px'>🏬</div>"
+html:"<div style='font-size:32px'>🏬</div>"
 });
 
 // ================= LOAD
@@ -137,14 +137,7 @@ tricotFiltrado=tricot;
 init();
 });
 
-// ================= INIT
-function init(){
-initFiltro();
-render();
-updateDashboard();
-}
-
-// ================= CLEAN (MEJORADO)
+// ================= CLEAN
 function clean(s){
 return (s||"")
 .toLowerCase()
@@ -153,10 +146,34 @@ return (s||"")
 .trim();
 }
 
+// ================= GET CAMPOS FLEXIBLES
+function getLat(obj){
+return obj.lat || obj.latitud || obj.latitude;
+}
+
+function getLng(obj){
+return obj.lng || obj.longitud || obj.longitude;
+}
+
+function getComuna(obj){
+return obj.comuna || obj.comuna_nombre || obj.NOM_COM;
+}
+
+function getNombre(obj){
+return obj.nombre || obj.nombre_tienda || obj.name;
+}
+
+// ================= INIT
+function init(){
+initFiltro();
+render();
+updateDashboard();
+}
+
 // ================= FILTRO
 function initFiltro(){
 
-let comunasUnicas=[...new Set(soportes.map(s=>clean(s.comuna)))];
+let comunasUnicas=[...new Set(soportes.map(s=>clean(getComuna(s))))];
 
 filtroComuna.innerHTML="<option value=''>Todas</option>";
 
@@ -173,11 +190,11 @@ applyFilter();
 function applyFilter(){
 
 filtrados=soportes.filter(s=>{
-return !selectedComuna || clean(s.comuna)===selectedComuna;
+return !selectedComuna || clean(getComuna(s))===selectedComuna;
 });
 
 tricotFiltrado=tricot.filter(t=>{
-return !selectedComuna || clean(t.comuna)===selectedComuna;
+return !selectedComuna || clean(getComuna(t))===selectedComuna;
 });
 
 render();
@@ -202,17 +219,6 @@ color:"#2563eb",
 fillColor:s>200?"#1e3a8a":s>100?"#2563eb":s>50?"#3b82f6":"#93c5fd",
 fillOpacity:0.3
 };
-},
-onEachFeature:(f,l)=>{
-let s=f.properties.soportes||0;
-
-l.on("click",()=>{
-updateDetalle(`
-<b>Zona H6</b><br>
-Soportes: ${s}<br>
-${getInsight(s)}
-`);
-});
 }
 }).addTo(capaHex);
 
@@ -239,14 +245,17 @@ map.fitBounds(l.getBounds());
 
 // ================= SOPORTES
 filtrados.forEach(p=>{
-if(!p.lat || !p.lng) return;
+let lat=getLat(p);
+let lng=getLng(p);
 
-let m=L.marker([p.lat,p.lng],{icon:iconSoporte});
+if(!lat || !lng) return;
+
+let m=L.marker([lat,lng],{icon:iconSoporte});
 
 m.on("click",()=>{
 updateDetalle(`
 <b>Soporte</b><br>
-📍 ${p.comuna}<br>
+📍 ${getComuna(p)}<br>
 🏷 ${p.categoria || "-"}<br>
 📢 ${p.tipo || "-"}
 `);
@@ -255,18 +264,21 @@ updateDetalle(`
 cluster.addLayer(m);
 });
 
-// ================= TIENDAS (NO SE FILTRAN MAL)
-tricot.forEach(t=>{
-if(!t.lat || !t.lng) return;
+// ================= TIENDAS (FIX REAL)
+tricotFiltrado.forEach(t=>{
+let lat=getLat(t);
+let lng=getLng(t);
+
+if(!lat || !lng) return;
 
 let cercanos=filtrados.filter(s=>s.h8===t.h8).length;
 
-let m=L.marker([t.lat,t.lng],{icon:iconTricot});
+let m=L.marker([lat,lng],{icon:iconTricot});
 
 m.on("click",()=>{
 updateDetalle(`
-<b>🏬 ${t.nombre || "Tienda Tricot"}</b><br>
-📍 ${t.comuna}<br>
+<b>🏬 ${getNombre(t)}</b><br>
+📍 ${getComuna(t)}<br>
 Soportes cercanos: ${cercanos}<br>
 ${getInsight(cercanos)}
 `);
@@ -287,22 +299,17 @@ capaTricot.bringToFront();
 function updateDashboard(){
 
 let totalS=filtrados.length;
-let totalT=tricot.length;
+let totalT=tricotFiltrado.length;
 
 kpiSoportes.innerText="Soportes: "+totalS;
 kpiTiendas.innerText="Tiendas: "+totalT;
-
-let insight=
-totalS>2000?"🔥 Saturación alta":
-totalS>800?"⚡ Mercado activo":
-"🧊 Oportunidad";
 
 detalle.innerHTML=`
 <b>Resumen</b><br>
 Comuna: ${selectedComuna||"Todas"}<br>
 Soportes: ${totalS}<br>
 Tiendas: ${totalT}<br>
-<br>💡 ${insight}
+<br>${getInsight(totalS)}
 `;
 }
 
@@ -312,8 +319,8 @@ detalle.innerHTML=t;
 }
 
 function getInsight(n){
-if(n>100)return "🔥 Saturado";
-if(n>50)return "⚡ Medio";
+if(n>1000)return "🔥 Saturación alta";
+if(n>300)return "⚡ Mercado activo";
 return "🧊 Oportunidad";
 }
 
