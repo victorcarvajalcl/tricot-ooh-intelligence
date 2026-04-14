@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Tricot OOH Intelligence BI</title>
+<title>OOH Intelligence PRO</title>
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css"/>
@@ -11,17 +11,16 @@
 <style>
 body{margin:0;font-family:Arial;background:#0b1220;color:#fff}
 .app{display:flex;height:100vh}
-.sidebar{width:380px;background:#0b1324;padding:15px;overflow:auto}
+.sidebar{width:360px;background:#0b1324;padding:15px;overflow:auto}
 .card{background:#111827;padding:12px;border-radius:10px;margin-bottom:10px}
-.kpi{font-size:20px;font-weight:bold}
 .map{flex:1}
-select,input{width:100%;margin-bottom:8px;padding:6px;border-radius:6px;border:none}
-.ranking-item{background:#1e293b;padding:8px;border-radius:8px;margin-bottom:6px;cursor:pointer}
+
+.kpi{font-size:20px;font-weight:bold}
 
 @media(max-width:768px){
 .sidebar{position:absolute;width:85%;left:-100%;transition:.3s}
 .sidebar.open{left:0}
-.toggle{position:absolute;top:10px;left:10px;background:#2563eb;padding:8px;border-radius:6px;z-index:1000}
+.toggle{position:absolute;top:10px;left:10px;background:#2563eb;padding:8px;border-radius:6px}
 }
 </style>
 </head>
@@ -32,36 +31,20 @@ select,input{width:100%;margin-bottom:8px;padding:6px;border-radius:6px;border:n
 
 <div class="sidebar" id="sidebar">
 
-<h2>OOH Intelligence BI</h2>
+<h2>OOH Intelligence</h2>
 
 <div class="card">
 <div class="kpi" id="kpiSoportes">0</div>
-<div>Soportes</div>
-<div class="kpi" id="kpiTiendas">0</div>
-<div>Tiendas</div>
-<div class="kpi" id="kpiRatio">0%</div>
-<div>Cobertura</div>
+Soportes
 </div>
 
 <div class="card">
-<h3>Filtros</h3>
-<select id="fComuna"></select>
-<select id="fCategoria"></select>
-</div>
-
-<div class="card">
-<h3>Insight</h3>
-<div id="insight">Selecciona una zona</div>
-</div>
-
-<div class="card">
-<h3>Top Zonas H6 🔥</h3>
-<div id="ranking"></div>
+<div id="detalle">Haz click en mapa</div>
 </div>
 
 </div>
 
-<div class="map" id="map"></div>
+<div id="map" class="map"></div>
 
 </div>
 
@@ -76,147 +59,152 @@ const map=L.map('map').setView([-33.45,-70.66],11);
 
 L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(map);
 
-let soportes=[],tricot=[],h6;
-let filtrados=[];
+// DATA
+let soportes=[],tricot=[],comunas,h6;
 
-let cluster=L.markerClusterGroup().addTo(map);
+// CAPAS
+let capaHex=L.layerGroup().addTo(map);
+let capaComunas=L.layerGroup().addTo(map);
+let capaTricot=L.layerGroup().addTo(map);
 
+let cluster=L.markerClusterGroup({
+disableClusteringAtZoom:15,
+maxClusterRadius:50
+}).addTo(map);
+
+// ICONOS
 const iconSoporte=L.divIcon({
-html:"<div style='width:12px;height:12px;background:#ef4444;border-radius:50%;border:2px solid white'></div>"
+html:"<div style='width:14px;height:14px;background:#ef4444;border-radius:50%;border:2px solid white'></div>"
 });
 
 const iconTricot=L.divIcon({
-html:"<div style='font-size:26px'>🏬</div>"
+html:"<div style='font-size:28px'>🏬</div>"
 });
 
 // LOAD
 Promise.all([
 fetch("data/soportes_h3.json").then(r=>r.json()),
 fetch("data/tricot.json").then(r=>r.json()),
+fetch("data/comunas.geojson").then(r=>r.json()),
 fetch("data/h6.geojson").then(r=>r.json())
-]).then(([s,t,h6d])=>{
+]).then(([s,t,c,h6d])=>{
 soportes=s;
 tricot=t;
+comunas=c;
 h6=h6d;
-filtrados=soportes;
-init();
+render();
 });
 
-// INIT
-function init(){
-
-initFiltros();
-
-document.getElementById("fComuna").onchange=filtrar;
-document.getElementById("fCategoria").onchange=filtrar;
-
-render();
-}
-
-// FILTROS
-function initFiltros(){
-let comunas=[...new Set(soportes.map(s=>s.comuna))];
-let categorias=[...new Set(soportes.map(s=>s.categoria))];
-
-fComuna.innerHTML="<option value=''>Todas</option>"+comunas.map(c=>`<option>${c}</option>`).join("");
-fCategoria.innerHTML="<option value=''>Todas</option>"+categorias.map(c=>`<option>${c}</option>`).join("");
-}
-
-function filtrar(){
-let c=fComuna.value;
-let cat=fCategoria.value;
-
-filtrados=soportes.filter(s=>
-(!c || s.comuna===c) &&
-(!cat || s.categoria===cat)
-);
-
-render();
-}
-
-// RENDER
+// ================= RENDER
 function render(){
 
 cluster.clearLayers();
+capaTricot.clearLayers();
+capaComunas.clearLayers();
+capaHex.clearLayers();
 
-// SOPORTES
-filtrados.forEach(p=>{
-if(!p.lat)return;
-cluster.addLayer(L.marker([p.lat,p.lng],{icon:iconSoporte})
-.on("click",()=>updateInsight(`Soporte<br>${p.comuna}<br>${p.categoria}`))
-);
-});
-
-// TRICOT
-tricot.forEach(t=>{
-if(!t.lat)return;
-
-let cercanos=filtrados.filter(s=>s.h8===t.h8).length;
-
-L.marker([t.lat,t.lng],{icon:iconTricot})
-.addTo(map)
-.on("click",()=>updateInsight(`🏬 ${t.comuna}<br>Soportes cercanos: ${cercanos}`));
-});
-
-// H6 ZONAS CALIENTES
+// ================= HEX (FONDO)
 L.geoJSON(h6,{
 style:f=>{
 let s=f.properties.soportes||0;
 return{
 color:"#2563eb",
 fillColor:s>20?"#1d4ed8":s>10?"#3b82f6":"#93c5fd",
-fillOpacity:0.3
+fillOpacity:0.25
 };
+}
+}).addTo(capaHex);
+
+// ================= COMUNAS (VISIBLE)
+L.geoJSON(comunas,{
+style:{
+color:"#22c55e",
+weight:2,
+fillOpacity:0.05
 },
 onEachFeature:(f,l)=>{
-let s=f.properties.soportes||0;
+
+let nombre=f.properties.NOM_COM||f.properties.Comuna;
+
+l.bindTooltip(nombre);
+
 l.on("click",()=>{
-updateInsight(`H6<br>Soportes: ${s}<br>${getInsight(s)}`);
+let total=soportes.filter(s=>clean(s.comuna)===clean(nombre)).length;
+
+updateDetalle(`
+<b>${nombre}</b><br>
+Soportes: ${total}<br>
+${getInsight(total)}
+`);
+
+map.fitBounds(l.getBounds());
 });
 }
-}).addTo(map);
+}).addTo(capaComunas);
 
-// KPIs
-kpiSoportes.innerText=filtrados.length;
-kpiTiendas.innerText=tricot.length;
-kpiRatio.innerText=Math.round((filtrados.length/tricot.length)*10)+"%";
+// ================= SOPORTES (CLUSTER)
+soportes.forEach(p=>{
+if(!p.lat||!p.lng)return;
 
-// RANKING
-renderRanking();
+let m=L.marker([p.lat,p.lng],{icon:iconSoporte});
 
-}
-
-// RANKING
-function renderRanking(){
-
-let top=h6.features
-.map(f=>({score:f.properties.soportes||0,geom:f}))
-.sort((a,b)=>b.score-a.score)
-.slice(0,5);
-
-ranking.innerHTML="";
-
-top.forEach((z,i)=>{
-let div=document.createElement("div");
-div.className="ranking-item";
-div.innerHTML=`#${i+1} Soportes: ${z.score}`;
-div.onclick=()=>map.fitBounds(L.geoJSON(z.geom).getBounds());
-ranking.appendChild(div);
+m.on("click",()=>{
+updateDetalle(`
+<b>${p.nombre||"Soporte"}</b><br>
+📍 ${p.comuna}<br>
+🏷 ${p.categoria}
+`);
 });
+
+cluster.addLayer(m);
+});
+
+// ================= TRICOT (SIEMPRE ARRIBA)
+tricot.forEach(t=>{
+if(!t.lat||!t.lng)return;
+
+let cercanos=soportes.filter(s=>s.h8===t.h8).length;
+
+let m=L.marker([t.lat,t.lng],{icon:iconTricot});
+
+m.on("click",()=>{
+updateDetalle(`
+<b>🏬 ${t.nombre||"Tienda Tricot"}</b><br>
+📍 ${t.comuna}<br>
+Soportes cercanos: ${cercanos}<br>
+${getInsight(cercanos)}
+`);
+});
+
+capaTricot.addLayer(m);
+});
+
+// KPI
+kpiSoportes.innerText=soportes.length;
+
+// ORDEN CAPAS (CLAVE)
+capaHex.bringToBack();
+capaComunas.bringToFront();
+cluster.bringToFront();
+capaTricot.bringToFront();
+
 }
 
-// INSIGHT
-function updateInsight(txt){
-document.getElementById("insight").innerHTML=txt;
+// ================= UTILS
+function updateDetalle(html){
+document.getElementById("detalle").innerHTML=html;
 }
 
-function getInsight(s){
-if(s>20)return "🔥 Zona caliente";
-if(s>10)return "⚡ Alta";
+function clean(str){
+return (str||"").toLowerCase().trim();
+}
+
+function getInsight(n){
+if(n>200)return "🔥 Zona saturada";
+if(n>100)return "⚡ Media";
 return "🧊 Oportunidad";
 }
 
-// MOBILE
 function toggleSidebar(){
 document.getElementById("sidebar").classList.toggle("open");
 }
