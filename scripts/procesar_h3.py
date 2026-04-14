@@ -1,46 +1,17 @@
 import json
 import h3
+import os
 
-RES_H3 = 4
-RES_H6 = 6
-RES_H8 = 8
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DATA_DIR = os.path.join(BASE_DIR, "data")
 
-def enrich(data):
-    output = []
-
-    for p in data:
-        try:
-            lat = float(p["lat"])
-            lng = float(p["lng"])
-
-            p["h3"] = h3.latlng_to_cell(lat, lng, RES_H3)
-            p["h6"] = h3.latlng_to_cell(lat, lng, RES_H6)
-            p["h8"] = h3.latlng_to_cell(lat, lng, RES_H8)
-
-            output.append(p)
-
-        except:
-            continue
-
-    return output
-
-
-# ================= LOAD
-with open("data/soportes.json") as f:
+with open(os.path.join(DATA_DIR, "soportes.json")) as f:
     soportes = json.load(f)
 
-with open("data/tricot.json") as f:
-    tricot = json.load(f)
+for s in soportes:
+    s["h3"] = h3.latlng_to_cell(s["lat"], s["lng"], 8)
 
-# ================= PROCESS
-soportes_h3 = enrich(soportes)
-tricot_h3 = enrich(tricot)
+with open(os.path.join(DATA_DIR, "soportes_h3.json"), "w") as f:
+    json.dump(soportes, f, indent=2)
 
-# ================= SAVE
-with open("data/soportes_h3.json", "w") as f:
-    json.dump(soportes_h3, f)
-
-with open("data/tricot_h3.json", "w") as f:
-    json.dump(tricot_h3, f)
-
-print("✅ H3 generado correctamente")
+print("✅ soportes_h3.json generado")
