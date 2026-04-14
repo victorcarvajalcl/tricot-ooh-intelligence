@@ -79,7 +79,7 @@ h3{margin:5px 0}
 
 <script>
 
-// ================= DOM FIX (CLAVE)
+// ================= DOM
 const filtroComuna = document.getElementById("filtroComuna");
 const kpiSoportes = document.getElementById("kpiSoportes");
 const kpiTiendas = document.getElementById("kpiTiendas");
@@ -101,7 +101,12 @@ let capaComunas=L.layerGroup().addTo(map);
 let capaTricot=L.layerGroup().addTo(map);
 
 let cluster=L.markerClusterGroup({
-disableClusteringAtZoom:15
+disableClusteringAtZoom:15,
+iconCreateFunction: function(cluster) {
+return L.divIcon({
+html: `<div style="background:#ef4444;color:white;border-radius:50%;width:35px;height:35px;display:flex;align-items:center;justify-content:center;font-weight:bold">${cluster.getChildCount()}</div>`
+});
+}
 }).addTo(map);
 
 // ================= ICONOS
@@ -110,16 +115,17 @@ html:"<div style='width:10px;height:10px;background:#ef4444;border-radius:50%;bo
 });
 
 const iconTricot=L.divIcon({
-html:"<div style='font-size:28px'>🏬</div>"
+html:"<div style='font-size:30px'>🏬</div>"
 });
 
 // ================= LOAD
 Promise.all([
-fetch("data/soportes_h3.json").then(r=>r.json()),
-fetch("data/tricot.json").then(r=>r.json()),
+fetch("data/soportes_h3.json").then(r=>r.json()).catch(()=>[]),
+fetch("data/tricot.json").then(r=>r.json()).catch(()=>[]),
 fetch("data/comunas.geojson").then(r=>r.json()),
 fetch("data/h6.geojson").then(r=>r.json())
 ]).then(([s,t,c,h])=>{
+
 soportes=s;
 tricot=t;
 comunas=c;
@@ -138,6 +144,15 @@ render();
 updateDashboard();
 }
 
+// ================= CLEAN (MEJORADO)
+function clean(s){
+return (s||"")
+.toLowerCase()
+.normalize("NFD")
+.replace(/[\u0300-\u036f]/g, "")
+.trim();
+}
+
 // ================= FILTRO
 function initFiltro(){
 
@@ -146,10 +161,7 @@ let comunasUnicas=[...new Set(soportes.map(s=>clean(s.comuna)))];
 filtroComuna.innerHTML="<option value=''>Todas</option>";
 
 comunasUnicas.forEach(c=>{
-let op=document.createElement("option");
-op.value=c;
-op.text=c;
-filtroComuna.appendChild(op);
+filtroComuna.innerHTML+=`<option value="${c}">${c}</option>`;
 });
 
 filtroComuna.onchange=()=>{
@@ -159,8 +171,14 @@ applyFilter();
 }
 
 function applyFilter(){
-filtrados=soportes.filter(s=>!selectedComuna || clean(s.comuna)===selectedComuna);
-tricotFiltrado=tricot.filter(t=>!selectedComuna || clean(t.comuna)===selectedComuna);
+
+filtrados=soportes.filter(s=>{
+return !selectedComuna || clean(s.comuna)===selectedComuna;
+});
+
+tricotFiltrado=tricot.filter(t=>{
+return !selectedComuna || clean(t.comuna)===selectedComuna;
+});
 
 render();
 updateDashboard();
@@ -178,10 +196,11 @@ capaHex.clearLayers();
 L.geoJSON(h6,{
 style:f=>{
 let s=f.properties.soportes||0;
+
 return{
 color:"#2563eb",
-fillColor:s>20?"#1d4ed8":s>10?"#3b82f6":"#93c5fd",
-fillOpacity:0.25
+fillColor:s>200?"#1e3a8a":s>100?"#2563eb":s>50?"#3b82f6":"#93c5fd",
+fillOpacity:0.3
 };
 },
 onEachFeature:(f,l)=>{
@@ -205,7 +224,7 @@ weight:2,
 fillOpacity:0.05
 },
 onEachFeature:(f,l)=>{
-let nombre=f.properties.NOM_COM || f.properties.Comuna;
+let nombre=f.properties.NOM_COM;
 
 l.bindTooltip(nombre);
 
@@ -220,7 +239,7 @@ map.fitBounds(l.getBounds());
 
 // ================= SOPORTES
 filtrados.forEach(p=>{
-if(!p.lat||!p.lng)return;
+if(!p.lat || !p.lng) return;
 
 let m=L.marker([p.lat,p.lng],{icon:iconSoporte});
 
@@ -228,17 +247,17 @@ m.on("click",()=>{
 updateDetalle(`
 <b>Soporte</b><br>
 📍 ${p.comuna}<br>
-🏷 ${p.categoria}<br>
-📢 ${p.tipo||"-"}
+🏷 ${p.categoria || "-"}<br>
+📢 ${p.tipo || "-"}
 `);
 });
 
 cluster.addLayer(m);
 });
 
-// ================= TIENDAS
-tricotFiltrado.forEach(t=>{
-if(!t.lat||!t.lng)return;
+// ================= TIENDAS (NO SE FILTRAN MAL)
+tricot.forEach(t=>{
+if(!t.lat || !t.lng) return;
 
 let cercanos=filtrados.filter(s=>s.h8===t.h8).length;
 
@@ -246,7 +265,7 @@ let m=L.marker([t.lat,t.lng],{icon:iconTricot});
 
 m.on("click",()=>{
 updateDetalle(`
-<b>🏬 ${t.nombre||"Tienda Tricot"}</b><br>
+<b>🏬 ${t.nombre || "Tienda Tricot"}</b><br>
 📍 ${t.comuna}<br>
 Soportes cercanos: ${cercanos}<br>
 ${getInsight(cercanos)}
@@ -268,7 +287,7 @@ capaTricot.bringToFront();
 function updateDashboard(){
 
 let totalS=filtrados.length;
-let totalT=tricotFiltrado.length;
+let totalT=tricot.length;
 
 kpiSoportes.innerText="Soportes: "+totalS;
 kpiTiendas.innerText="Tiendas: "+totalT;
@@ -288,8 +307,9 @@ Tiendas: ${totalT}<br>
 }
 
 // ================= UTILS
-function clean(s){return (s||"").toLowerCase().trim();}
-function updateDetalle(t){detalle.innerHTML=t;}
+function updateDetalle(t){
+detalle.innerHTML=t;
+}
 
 function getInsight(n){
 if(n>100)return "🔥 Saturado";
