@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tricot OOH Intelligence</title>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css"/>
+
+<style>
+body{margin:0;display:flex;font-family:Arial;background:#0b1220}
+#sidebar{width:360px;background:#0b1220;color:#fff;padding:15px}
+#map{flex:1;height:100vh}
+
+.chip{background:#081a3b;padding:8px 12px;border-radius:20px;cursor:pointer;margin:5px;display:inline-block}
+.chip.active{background:#2563eb}
+
+.panel{margin-bottom:15px}
+</style>
+</head>
+
+<body>
+
+<div id="sidebar">
+
+<h2>Tricot OOH Intelligence</h2>
+
+<div class="panel" id="stats"></div>
+
+<div class="panel">
+<div class="chip active" data-layer="soportes">Soportes</div>
+<div class="chip active" data-layer="tricot">Tricot</div>
+<div class="chip active" data-layer="h3">H3</div>
+<div class="chip active" data-layer="h6">H6</div>
+<div class="chip" data-layer="h8">H8</div>
+</div>
+
+</div>
+
+<div id="map"></div>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
+
+<script>
+
+const map=L.map('map').setView([-33.45,-70.66],11);
+
+L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(map);
+
+// ================= DATA
+let soportes,tricot,h3,h6,h8;
+
+// ================= CAPAS
+let cluster=L.markerClusterGroup({maxClusterRadius:50});
+let capaTricot=L.layerGroup();
+let capaH3,capaH6,capaH8;
+
+// ================= ESTADO
+let state={soportes:true,tricot:true,h3:true,h6:true,h8:false};
+
+// ================= ICONO TRICOT
+const iconTricot=L.divIcon({
+html:"<div style='font-size:22px'>🏬</div>",
+iconSize:[20,20]
+});
+
+// ================= LOAD
+Promise.all([
+fetch("data/soportes_h3.json").then(r=>r.json()),
+fetch("data/tricot_h3.json").then(r=>r.json()),
+fetch("data/h3.geojson").then(r=>r.json()).catch(()=>null),
+fetch("data/h6.geojson").then(r=>r.json()),
+fetch("data/h8.geojson").then(r=>r.json())
+]).then(([s,t,h3d,h6d,h8d])=>{
+soportes=s;
+tricot=t;
+h3=h3d;
+h6=h6d;
+h8=h8d;
+init();
+});
+
+// ================= INIT
+function init(){
+
+document.querySelectorAll(".chip").forEach(chip=>{
+chip.onclick=()=>{
+let k=chip.dataset.layer;
+state[k]=!state[k];
+chip.classList.toggle("active");
+render();
+};
+});
+
+map.on("zoomend moveend",render);
+render();
+}
+
+// ================= RENDER
+function render(){
+
+cluster.clearLayers();
+capaTricot.clearLayers();
+
+if(capaH3) map.removeLayer(capaH3);
+if(capaH6) map.removeLayer(capaH6);
+if(capaH8) map.removeLayer(capaH8);
+
+// ================= SOPORTES
+if(state.soportes){
+soportes.forEach(p=>{
+if(!p.lat||!p.lng)return;
+
+let m=L.circleMarker([p.lat,p.lng],{
+radius:4,
+color:"#ef4444"
+});
+
+m.bindPopup(`
+<b>${p.nombre||'Soporte'}</b><br>
+📍 ${p.comuna||'-'}<br>
+🏷 ${p.categoria||'-'}<br>
+🧩 H6: ${p.h6}<br>
+🔎 H8: ${p.h8}
+`);
+
+cluster.addLayer(m);
+});
+
+map.addLayer(cluster);
+}
+
+// ================= TRICOT (con análisis real H3)
+if(state.tricot){
+tricot.forEach(t=>{
+
+let cercanos = soportes.filter(s=>s.h8===t.h8).length;
+
+let nivel =
+cercanos>25?"🔥 Alta cobertura":
+cercanos>10?"⚡ Media":
+"🧊 Oportunidad";
+
+let m=L.marker([t.lat,t.lng],{icon:iconTricot});
+
+m.bindPopup(`
+<b>TIENDA TRICOT</b><br>
+📍 ${t.comuna}<br>
+📊 Soportes H8: ${cercanos}<br>
+💡 ${nivel}
+`);
+
+capaTricot.addLayer(m);
+});
+
+map.addLayer(capaTricot);
+}
+
+// ================= HEX SEGÚN ZOOM
+let z=map.getZoom();
+
+// H3
+if(z<=9 && state.h3 && h3){
+capaH3=L.geoJSON(h3,{
+style:{color:"#334155",fillOpacity:0.05}
+}).addTo(map);
+}
+
+// H6
+if(z>9 && z<=13 && state.h6){
+capaH6=L.geoJSON(h6,{
+style:f=>{
+let s=f.properties.soportes||0;
+return{
+color:"#2563eb",
+fillColor:getColor(s),
+fillOpacity:0.35
+};
+},
+onEachFeature:(f,l)=>{
+let s=f.properties.soportes||0;
+l.bindPopup(`
+<b>H6</b><br>
+Soportes: ${s}<br>
+💡 ${getInsight(s)}
+`);
+}
+}).addTo(map);
+}
+
+// H8
+if(z>13 && state.h8){
+capaH8=L.geoJSON(h8,{
+style:f=>{
+let s=f.properties.soportes||0;
+return{
+color:"#9333ea",
+fillColor:getColor(s),
+fillOpacity:0.4
+};
+},
+onEachFeature:(f,l)=>{
+let s=f.properties.soportes||0;
+l.bindPopup(`<b>H8</b><br>Soportes: ${s}`);
+}
+}).addTo(map);
+}
+
+// KPI
+stats.innerHTML=`Soportes: ${soportes.length}`;
+
+}
+
+// ================= COLOR
+function getColor(s){
+if(s>20)return "#1d4ed8";
+if(s>10)return "#3b82f6";
+if(s>5)return "#60a5fa";
+return "#93c5fd";
+}
+
+// ================= INSIGHT
+function getInsight(s){
+if(s>20)return "🔥 Zona caliente";
+if(s>10)return "⚡ Alta actividad";
+return "🧊 Oportunidad";
+}
+
+</script>
+
+</body>
+</html>
