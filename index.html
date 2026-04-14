@@ -9,24 +9,114 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css"/>
 
 <style>
+
 body{margin:0;font-family:Arial;background:#0b1220;color:#fff}
-.app{display:flex;height:100vh}
-.sidebar{width:360px;background:#0b1324;padding:15px;overflow:auto}
-#map{flex:1}
 
-.stat{background:#081a3b;padding:10px;border-radius:10px;margin-bottom:8px}
+.app{
+display:flex;
+height:100vh;
+}
 
-select,input{width:100%;padding:10px;margin-bottom:10px;border-radius:10px;background:#091a36;color:#fff;border:none}
+/* SIDEBAR */
+.sidebar{
+width:360px;
+background:#0b1324;
+padding:15px;
+overflow:auto;
+transition:0.3s;
+z-index:1000;
+}
 
-.chip{display:inline-block;padding:8px 12px;margin:3px;background:#0a1b3a;border-radius:20px;cursor:pointer}
-.chip.active{background:#2563eb}
+/* MAPA */
+#map{
+flex:1;
+}
+
+/* STATS */
+.stat{
+background:#081a3b;
+padding:10px;
+border-radius:10px;
+margin-bottom:8px
+}
+
+select,input{
+width:100%;
+padding:10px;
+margin-bottom:10px;
+border-radius:10px;
+background:#091a36;
+color:#fff;
+border:none
+}
+
+.chip{
+display:inline-block;
+padding:8px 12px;
+margin:3px;
+background:#0a1b3a;
+border-radius:20px;
+cursor:pointer
+}
+
+.chip.active{
+background:#2563eb
+}
+
+/* BOTÓN MOBILE */
+.menu-btn{
+display:none;
+position:absolute;
+top:10px;
+left:10px;
+z-index:1100;
+background:#2563eb;
+color:white;
+border:none;
+padding:10px;
+border-radius:8px;
+cursor:pointer;
+}
+
+/* 📱 MOBILE */
+@media(max-width:768px){
+
+.app{
+flex-direction:column;
+}
+
+.sidebar{
+position:absolute;
+width:80%;
+height:100%;
+left:-100%;
+top:0;
+}
+
+.sidebar.open{
+left:0;
+}
+
+#map{
+height:100vh;
+}
+
+.menu-btn{
+display:block;
+}
+
+}
+
 </style>
 </head>
 
 <body>
 
+<button class="menu-btn" onclick="toggleMenu()">☰</button>
+
 <div class="app">
-<div class="sidebar">
+
+<div class="sidebar" id="sidebar">
 
 <h2>📊 OOH Intelligence</h2>
 
@@ -46,18 +136,23 @@ select,input{width:100%;padding:10px;margin-bottom:10px;border-radius:10px;backg
 <span class="chip active" data-layer="h3">H3</span>
 <span class="chip active" data-layer="h6">H6</span>
 <span class="chip" data-layer="h8">H8</span>
-<span class="chip active" data-layer="comunas">Comunas</span>
 </div>
 
 </div>
 
 <div id="map"></div>
+
 </div>
 
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
 
 <script>
+
+// 📱 TOGGLE MENU
+function toggleMenu(){
+document.getElementById('sidebar').classList.toggle('open');
+}
 
 const map=L.map('map').setView([-33.45,-70.66],11);
 
@@ -73,7 +168,7 @@ const layersState={
 soportes:true,tiendas:true,h3:true,h6:true,h8:false
 };
 
-// 🎯 ICONO TIENDAS
+// ICONO TIENDAS
 const tiendaIcon = L.divIcon({
 html:`<div style="
 background:#2563eb;
@@ -107,6 +202,9 @@ renderHex(h3,h6,h8);
 render();
 
 map.on('zoomend', controlarZoom);
+
+// 🔥 IMPORTANTE: re-render mapa en móvil
+setTimeout(()=>map.invalidateSize(),300);
 
 }
 
@@ -159,11 +257,6 @@ tiendasFiltradas=tiendas.filter(t=>
 (!comuna||t.comuna===comuna)
 );
 
-if(filtrados.length){
-const bounds=L.latLngBounds(filtrados.map(p=>[p.lat,p.lng]));
-map.fitBounds(bounds);
-}
-
 render();
 }
 
@@ -172,62 +265,20 @@ function render(){
 map.removeLayer(cluster);
 cluster=L.markerClusterGroup();
 
-// 🔴 SOPORTES SIEMPRE VISIBLES
-if(layersState.soportes){
-
 filtrados.forEach(p=>{
-
-const zoom=map.getZoom();
-const size = zoom>=16 ? 6 : zoom>=14 ? 4 : 3;
-
 const m=L.circleMarker([p.lat,p.lng],{
-radius:size,
+radius:4,
 color:'#fff',
 fillColor:'#ef4444',
-fillOpacity:0.9
+fillOpacity:1
 });
-
-m.bindPopup(`
-<b>📍 SOPORTE</b><br>
-${p.nombre}<br>
-${p.comuna}<br>
-${p.categoria}<br>
-${p.tipo}
-`);
-
 cluster.addLayer(m);
-
 });
-}
-
-// 🔵 TIENDAS CON ICONO PRO
-if(layersState.tiendas){
 
 tiendasFiltradas.forEach(t=>{
-
 const m=L.marker([t.lat,t.lng],{icon:tiendaIcon});
-
-m.bindPopup(()=>{
-
-const cercanos=filtrados.filter(s=>map.distance([t.lat,t.lng],[s.lat,s.lng])<500);
-
-let nivel="🟢 Baja";
-if(cercanos.length>30) nivel="🔴 Alta";
-else if(cercanos.length>10) nivel="🟡 Media";
-
-return `
-<b>🏬 ${t.nombre}</b><br>
-${t.comuna}<br><br>
-📊 Soportes 500m: ${cercanos.length}<br>
-Nivel: ${nivel}
-`;
-
-});
-
 cluster.addLayer(m);
-
 });
-}
 
 map.addLayer(cluster);
 
@@ -238,43 +289,12 @@ document.getElementById('totalComunas').innerText=new Set(filtrados.map(s=>s.com
 
 }
 
-// HEX
 function renderHex(h3,h6,h8){
-
-h3Layer=L.geoJSON(h3,{
-style:{color:'#22c55e',fillOpacity:0.2},
-onEachFeature:(f,l)=>popupHex(f,l)
-}).addTo(map);
-
-h6Layer=L.geoJSON(h6,{
-style:{color:'#2563eb',fillOpacity:0.3},
-onEachFeature:(f,l)=>popupHex(f,l)
-}).addTo(map);
-
-h8Layer=L.geoJSON(h8,{
-style:{color:'#9333ea',fillOpacity:0.25},
-onEachFeature:(f,l)=>popupHex(f,l)
-}).addTo(map);
-
+h3Layer=L.geoJSON(h3,{style:{color:'#22c55e',fillOpacity:0.2}}).addTo(map);
+h6Layer=L.geoJSON(h6,{style:{color:'#2563eb',fillOpacity:0.3}}).addTo(map);
+h8Layer=L.geoJSON(h8,{style:{color:'#9333ea',fillOpacity:0.25}}).addTo(map);
 }
 
-function popupHex(f,l){
-
-const s=f.properties.soportes||0;
-
-let nivel="🟢 Baja";
-if(s>50) nivel="🔴 Alta";
-else if(s>20) nivel="🟡 Media";
-
-l.bindPopup(`
-<b>📊 HEX</b><br>
-Soportes: ${s}<br>
-Nivel: ${nivel}
-`);
-
-}
-
-// RESET
 function reset(){
 filtrados=soportes;
 tiendasFiltradas=tiendas;
