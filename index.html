@@ -8,6 +8,7 @@
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css"/>
 
 <style>
 body{margin:0;font-family:Arial;background:#0b1220;color:white}
@@ -40,7 +41,7 @@ text-align:center;
 
 .btn.active{background:#2563eb}
 
-.kpi{font-weight:bold;font-size:18px}
+.kpi{font-size:18px;font-weight:bold}
 select{width:100%;padding:6px}
 </style>
 </head>
@@ -111,14 +112,15 @@ let selectedComuna=null;
 let soportes=[],tricot=[],comunas,h3,h6,h8;
 
 // ================= CAPAS
-let capaH3=L.layerGroup();
-let capaH6=L.layerGroup();
-let capaH8=L.layerGroup();
-let capaComunas=L.layerGroup();
-let capaTricot=L.layerGroup();
+let capaTricot=L.layerGroup().addTo(map);
+let capaComunas=L.layerGroup().addTo(map);
+let capaHex=L.layerGroup().addTo(map);
 
+// ================= CLUSTER PRO
 let cluster=L.markerClusterGroup({
-disableClusteringAtZoom:15
+disableClusteringAtZoom:16,
+maxClusterRadius:50,
+spiderfyOnMaxZoom:true
 }).addTo(map);
 
 // ================= ICONOS
@@ -127,7 +129,7 @@ html:"<div style='width:14px;height:14px;background:#ef4444;border-radius:50%;bo
 });
 
 const iconTricot=L.divIcon({
-html:"<div style='background:#2563eb;color:white;padding:6px 10px;border-radius:10px;font-size:12px'>🏬 Tricot</div>",
+html:"<div style='background:#2563eb;color:white;padding:6px 10px;border-radius:12px;font-size:12px;font-weight:bold'>🏬 TRICOT</div>",
 className:""
 });
 
@@ -164,7 +166,6 @@ function initButtons(){
 
 Object.keys(state).forEach(key=>{
 let btn=document.getElementById("btn"+key.charAt(0).toUpperCase()+key.slice(1));
-
 if(btn){
 btn.onclick=()=>{
 state[key]=!state[key];
@@ -197,54 +198,32 @@ function render(){
 
 cluster.clearLayers();
 capaTricot.clearLayers();
-capaH3.clearLayers();
-capaH6.clearLayers();
-capaH8.clearLayers();
 capaComunas.clearLayers();
+capaHex.clearLayers();
 
-// ================= HEX DINÁMICO
+// ================= HEX SEGÚN ZOOM
 let zoom=map.getZoom();
+let geo = zoom<10 ? h3 : zoom<14 ? h6 : h8;
 
-if(state.h3 && zoom<9){
-L.geoJSON(h3,{
-style:{color:"#334155",fillOpacity:0.05},
-onEachFeature:(f,l)=>{
-l.on("click",()=>{
-updateDetalle(`H3<br>Soportes:${f.properties.soportes||0}`);
-});
-}
-}).addTo(capaH3);
-map.addLayer(capaH3);
-}
-
-if(state.h6 && zoom>=9 && zoom<=13){
-L.geoJSON(h6,{
+if(state.h3 || state.h6 || state.h8){
+L.geoJSON(geo,{
 style:f=>{
 let s=f.properties.soportes||0;
-return{color:"#2563eb",fillColor:getColor(s),fillOpacity:0.3};
+return{
+color:"#2563eb",
+fillColor:getColor(s),
+fillOpacity:0.3
+};
 },
 onEachFeature:(f,l)=>{
 l.on("click",()=>{
-updateDetalle(`H6<br>Soportes:${f.properties.soportes}`);
+updateDetalle(`
+<b>HEX</b><br>
+Soportes: ${f.properties.soportes||0}
+`);
 });
 }
-}).addTo(capaH6);
-map.addLayer(capaH6);
-}
-
-if(state.h8 && zoom>13){
-L.geoJSON(h8,{
-style:f=>{
-let s=f.properties.soportes||0;
-return{color:"#9333ea",fillColor:getColor(s),fillOpacity:0.4};
-},
-onEachFeature:(f,l)=>{
-l.on("click",()=>{
-updateDetalle(`H8<br>Soportes:${f.properties.soportes}`);
-});
-}
-}).addTo(capaH8);
-map.addLayer(capaH8);
+}).addTo(capaHex);
 }
 
 // ================= COMUNAS
@@ -263,10 +242,9 @@ render();
 });
 }
 }).addTo(capaComunas);
-map.addLayer(capaComunas);
 }
 
-// ================= SOPORTES
+// ================= SOPORTES (CLUSTER)
 if(state.soportes){
 soportes.forEach(p=>{
 if(!p.lat||!p.lng)return;
@@ -275,14 +253,18 @@ if(selectedComuna && p.comuna!==selectedComuna)return;
 let m=L.marker([p.lat,p.lng],{icon:iconSoporte});
 
 m.on("click",()=>{
-updateDetalle(`${p.comuna}<br>${p.categoria}`);
+updateDetalle(`
+<b>Soporte</b><br>
+${p.comuna}<br>
+${p.categoria}
+`);
 });
 
 cluster.addLayer(m);
 });
 }
 
-// ================= TIENDAS
+// ================= TIENDAS (VISIBLE SIEMPRE)
 if(state.tiendas){
 tricot.forEach(t=>{
 if(!t.lat||!t.lng)return;
@@ -293,13 +275,21 @@ let cercanos=soportes.filter(s=>s.h8===t.h8).length;
 let m=L.marker([t.lat,t.lng],{icon:iconTricot});
 
 m.on("click",()=>{
-updateDetalle(`🏬 ${t.nombre}<br>${t.comuna}<br>Soportes:${cercanos}`);
+updateDetalle(`
+<b>🏬 ${t.nombre}</b><br>
+${t.comuna}<br>
+Soportes cercanos: ${cercanos}
+`);
 });
 
 capaTricot.addLayer(m);
 });
-map.addLayer(capaTricot);
 }
+
+// ================= ORDEN CAPAS (CLAVE)
+capaHex.bringToBack();
+cluster.bringToBack();
+capaTricot.bringToFront();
 
 // ================= KPI
 kpiSoportes.innerText="Soportes: "+soportes.length;
