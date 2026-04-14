@@ -12,12 +12,24 @@ def limpiar_texto(x):
         return ""
     return str(x).strip()
 
-def limpiar_comuna(c):
-    if pd.isna(c):
-        return "Sin comuna"
-    return str(c).strip().title()
+# ================= CLASIFICACIÓN AUTOMÁTICA
+def clasificar_categoria(nombre):
+    n = str(nombre).lower()
 
-# ================= CARGAR COMUNAS
+    if "metro" in n:
+        return "Metro"
+    elif "mall" in n:
+        return "Mall"
+    elif "av" in n or "avenida" in n:
+        return "Avenida"
+    elif "pantalla" in n or "led" in n:
+        return "Pantalla Digital"
+    elif "paradero" in n:
+        return "Paradero"
+    else:
+        return "Otros"
+
+# ================= COMUNAS GEO
 comunas = gpd.read_file(os.path.join(DATA_DIR, "comunas.geojson"))
 comunas = comunas.to_crs(epsg=4326)
 
@@ -31,22 +43,17 @@ def obtener_comuna(lat, lng):
 # ================= SOPORTES
 df = pd.read_csv(os.path.join(DATA_DIR, "soportes_vista_actual.csv"))
 
-col_comuna = next((c for c in df.columns if 'comuna' in c.lower()), None)
 col_lat = next((c for c in df.columns if 'lat' in c.lower()), None)
 col_lng = next((c for c in df.columns if 'lng' in c.lower() or 'lon' in c.lower()), None)
-col_categoria = next((c for c in df.columns if 'categoria' in c.lower()), None)
-col_tipo = next((c for c in df.columns if 'tipo' in c.lower()), None)
-col_nombre = next((c for c in df.columns if 'name' in c.lower() or 'nombre' in c.lower()), None)
+col_nombre = next((c for c in df.columns if 'nombre' in c.lower() or 'name' in c.lower()), None)
 
 df['lat'] = df[col_lat]
 df['lng'] = df[col_lng]
 df['nombre'] = df[col_nombre].apply(limpiar_texto) if col_nombre else "Soporte"
-df['categoria'] = df[col_categoria].apply(limpiar_texto) if col_categoria else "Otros"
-df['tipo'] = df[col_tipo].apply(limpiar_texto) if col_tipo else ""
 
 df = df.dropna(subset=['lat','lng'])
 
-# 🔥 ASIGNAR COMUNA REAL
+df['categoria'] = df['nombre'].apply(clasificar_categoria)
 df['comuna'] = df.apply(lambda r: obtener_comuna(r['lat'], r['lng']), axis=1)
 
 df = df.fillna("")
@@ -59,7 +66,6 @@ print("✅ soportes.json generado")
 # ================= TRICOT
 df2 = pd.read_excel(os.path.join(DATA_DIR, "tricot_geocodificado.xlsx"))
 
-col_comuna2 = next((c for c in df2.columns if 'comuna' in c.lower()), None)
 col_lat2 = next((c for c in df2.columns if 'lat' in c.lower()), None)
 col_lng2 = next((c for c in df2.columns if 'lng' in c.lower() or 'lon' in c.lower()), None)
 col_nombre2 = next((c for c in df2.columns if 'nombre' in c.lower()), None)
@@ -70,7 +76,6 @@ df2['nombre'] = df2[col_nombre2].apply(limpiar_texto) if col_nombre2 else "Tiend
 
 df2 = df2.dropna(subset=['lat','lng'])
 
-# 🔥 COMUNA REAL
 df2['comuna'] = df2.apply(lambda r: obtener_comuna(r['lat'], r['lng']), axis=1)
 
 df2 = df2.fillna("")
