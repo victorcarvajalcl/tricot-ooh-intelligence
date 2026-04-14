@@ -12,7 +12,6 @@
 <style>
 body{margin:0;font-family:Arial;background:#0b1220;color:#fff}
 .app{display:flex;height:100vh}
-
 .sidebar{width:380px;background:#0b1324;padding:15px;overflow:auto}
 .map-wrap{flex:1}
 #map{height:100%}
@@ -44,11 +43,14 @@ border-radius:10px;background:#091a36;color:#fff;border:none
 <h2>📊 OOH Intelligence</h2>
 
 <div class="stat">Soportes: <b id="totalSoportes">0</b></div>
+<div class="stat">Tiendas: <b id="totalTiendas">0</b></div>
 <div class="stat">Comunas: <b id="totalComunas">0</b></div>
 
 <input id="search" placeholder="Buscar soporte">
+
 <select id="comuna"></select>
 <select id="categoria"></select>
+
 <button id="reset">Reset</button>
 
 <div class="chips">
@@ -75,24 +77,14 @@ const map=L.map('map').setView([-33.45,-70.66],11);
 
 L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(map);
 
-map.createPane('hex');map.getPane('hex').style.zIndex=400;
-map.createPane('points');map.getPane('points').style.zIndex=650;
-
-let soportes=[],filtrados=[],tiendas=[],tiendasFiltradas=[];
+let soportes=[],tiendas=[],filtrados=[],tiendasFiltradas=[];
 let h3,h6,h8,capaComunas;
 
 let capaPts=L.markerClusterGroup();
 
-const layersState={
-soportes:true,
-tiendas:true,
-h3:true,
-h6:true,
-h8:false,
-comunas:true
-};
+const layersState={soportes:true,tiendas:true,h3:true,h6:true,h8:false,comunas:true};
 
-// ================= CARGA SINCRONIZADA
+// ================= LOAD
 async function loadData(){
 
 const [s,t,h3d,h6d,h8d,cd] = await Promise.all([
@@ -104,41 +96,39 @@ fetch('data/h8.geojson').then(r=>r.json()),
 fetch('data/comunas.geojson').then(r=>r.json())
 ]);
 
-soportes=s;
-filtrados=s;
+// NORMALIZACIÓN
+soportes = s.map(x=>({
+...x,
+comuna: (x.comuna||'Sin comuna').trim()
+}));
 
-tiendas=t;
-tiendasFiltradas=t;
+tiendas = t.map(x=>({
+...x,
+comuna: (x.comuna||'Sin comuna').trim()
+}));
 
-h3=h3d;
-h6=h6d;
-h8=h8d;
+filtrados=soportes;
+tiendasFiltradas=tiendas;
+
+h3=h3d;h6=h6d;h8=h8d;
 
 cargarComunas(cd);
-
 init();
 render();
 }
 
 // ================= COMUNAS
 function cargarComunas(data){
-
 capaComunas=L.geoJSON(data,{
 style:{color:'#1e293b',weight:1,fillOpacity:0.03},
 onEachFeature:(f,l)=>{
-
-const nombre=f.properties.NOM_COM||f.properties.Comuna;
-
-l.bindTooltip(nombre);
-
-l.on('mouseover',()=>l.setStyle({color:'#22c55e',weight:3,fillOpacity:0.15,fillColor:'#22c55e'}));
+const n=f.properties.NOM_COM||f.properties.Comuna;
+l.bindTooltip(n);
+l.on('mouseover',()=>l.setStyle({color:'#22c55e',weight:3,fillOpacity:0.15}));
 l.on('mouseout',()=>capaComunas.resetStyle(l));
-
 l.on('click',()=>map.fitBounds(l.getBounds()));
 }
-});
-
-map.addLayer(capaComunas);
+}).addTo(map);
 }
 
 // ================= INIT
@@ -147,13 +137,11 @@ function init(){
 const comunas=[...new Set(soportes.map(s=>s.comuna))];
 const categorias=[...new Set(soportes.map(s=>s.categoria))];
 
-const sc=document.getElementById('comuna');
-sc.innerHTML='<option value="">Todas</option>';
-comunas.forEach(c=>sc.innerHTML+=`<option>${c}</option>`);
+document.getElementById('comuna').innerHTML='<option value="">Todas</option>'+
+comunas.map(c=>`<option>${c}</option>`).join('');
 
-const sc2=document.getElementById('categoria');
-sc2.innerHTML='<option value="">Todas</option>';
-categorias.forEach(c=>sc2.innerHTML+=`<option>${c}</option>`);
+document.getElementById('categoria').innerHTML='<option value="">Todas</option>'+
+categorias.map(c=>`<option>${c}</option>`).join('');
 
 ['search','comuna','categoria'].forEach(id=>
 document.getElementById(id).addEventListener('input',filtrar)
@@ -169,7 +157,7 @@ document.querySelectorAll('.chip').forEach(chip=>{
 chip.onclick=()=>{
 const k=chip.dataset.layer;
 layersState[k]=!layersState[k];
-chip.classList.toggle('active',layersState[k]);
+chip.classList.toggle('active');
 render();
 };
 });
@@ -183,7 +171,7 @@ const c=document.getElementById('comuna').value;
 const cat=document.getElementById('categoria').value;
 
 filtrados=soportes.filter(s=>
-(!q||(s.nombre||'').toLowerCase().includes(q)) &&
+(!q||s.nombre?.toLowerCase().includes(q)) &&
 (!c||s.comuna===c) &&
 (!cat||s.categoria===cat)
 );
@@ -204,22 +192,8 @@ capaPts=L.markerClusterGroup();
 // SOPORTES
 if(layersState.soportes){
 filtrados.forEach(p=>{
-const m=L.circleMarker([p.lat,p.lng],{
-radius:5,
-color:'#fff',
-fillColor:'#ef4444',
-fillOpacity:1
-});
-
-m.bindPopup(`
-<b>📍 SOPORTE</b><br>
-${p.nombre||'Sin nombre'}<br>
-${p.direccion||'-'}<br>
-${p.comuna||'-'}<br>
-${p.categoria||'-'}<br>
-${p.tipo||'-'}
-`);
-
+const m=L.circleMarker([p.lat,p.lng],{radius:5,color:'#fff',fillColor:'#ef4444',fillOpacity:1});
+m.bindPopup(`<b>📍 SOPORTE</b><br>${p.nombre}<br>${p.comuna}<br>${p.categoria}`);
 capaPts.addLayer(m);
 });
 }
@@ -228,74 +202,18 @@ capaPts.addLayer(m);
 if(layersState.tiendas){
 tiendasFiltradas.forEach(t=>{
 if(!t.lat||!t.lng) return;
-
-const m=L.marker([t.lat,t.lng],{
-icon:L.icon({
-iconUrl:'https://cdn-icons-png.flaticon.com/512/1077/1077114.png',
-iconSize:[28,28]
-})
-});
-
-m.bindPopup(`
-<b>🏬 TIENDA TRICOT</b><br>
-${t.nombre||'-'}<br>
-${t.comuna||'-'}
-`);
-
+const m=L.marker([t.lat,t.lng]);
+m.bindPopup(`<b>🏬 TIENDA</b><br>${t.nombre}<br>${t.comuna}`);
 capaPts.addLayer(m);
 });
 }
 
 map.addLayer(capaPts);
 
-// COMUNAS
-if(capaComunas){
-if(layersState.comunas && !map.hasLayer(capaComunas)) map.addLayer(capaComunas);
-if(!layersState.comunas && map.hasLayer(capaComunas)) map.removeLayer(capaComunas);
-}
-
-// HEX
-renderHex();
-
 // KPIs
 document.getElementById('totalSoportes').innerText=filtrados.length;
-document.getElementById('totalComunas').innerText=
-new Set(filtrados.map(s=>s.comuna)).size;
-
-}
-
-// ================= HEX
-function renderHex(){
-
-if(layersState.h3 && h3){
-L.geoJSON(h3,{
-pane:'hex',
-style:{color:'#22c55e',fillOpacity:0.2},
-onEachFeature:(f,l)=>{
-l.bindPopup(`H3<br>Soportes:${f.properties.soportes||0}`);
-}
-}).addTo(map);
-}
-
-if(layersState.h6 && h6){
-L.geoJSON(h6,{
-pane:'hex',
-style:{color:'#2563eb',fillOpacity:0.3},
-onEachFeature:(f,l)=>{
-l.bindPopup(`H6<br>Soportes:${f.properties.soportes||0}`);
-}
-}).addTo(map);
-}
-
-if(layersState.h8 && h8){
-L.geoJSON(h8,{
-pane:'hex',
-style:{color:'#9333ea',fillOpacity:0.25},
-onEachFeature:(f,l)=>{
-l.bindPopup(`H8<br>Soportes:${f.properties.soportes||0}`);
-}
-}).addTo(map);
-}
+document.getElementById('totalTiendas').innerText=tiendasFiltradas.length;
+document.getElementById('totalComunas').innerText=new Set(filtrados.map(s=>s.comuna)).size;
 
 }
 
