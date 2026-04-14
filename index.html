@@ -2,28 +2,71 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>OOH Analysis PRO</title>
+<title>OOH Intelligence PRO</title>
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css"/>
 
 <style>
-body{margin:0;font-family:Arial;}
-#map{height:100vh;width:75%;}
-#sidebar{
-position:absolute;
-right:0;
-top:0;
-width:25%;
+body{
+margin:0;
+font-family:Arial;
+display:flex;
 height:100vh;
-background:#111;
+overflow:hidden;
+}
+
+#map{
+flex:1;
+}
+
+#sidebar{
+width:320px;
+background:#0f172a;
 color:#fff;
 padding:15px;
-overflow:auto;
+overflow-y:auto;
 }
-button{margin:3px;padding:6px 10px;border:none;background:#333;color:#fff;cursor:pointer;}
-select{width:100%;padding:6px;margin-top:10px;}
-.kpi{background:#222;padding:10px;margin:5px 0;border-radius:5px;}
+
+@media(max-width:900px){
+body{flex-direction:column;}
+#sidebar{width:100%;height:40%;}
+#map{height:60%;}
+}
+
+h2,h3{margin:10px 0;}
+
+button{
+width:100%;
+margin:5px 0;
+padding:8px;
+background:#1e293b;
+border:none;
+color:#fff;
+cursor:pointer;
+}
+
+button:hover{background:#334155;}
+
+select{
+width:100%;
+padding:8px;
+margin:10px 0;
+}
+
+.kpi{
+background:#1e293b;
+padding:10px;
+margin:5px 0;
+border-radius:6px;
+}
+
+#detalle{
+background:#020617;
+padding:10px;
+border-radius:6px;
+margin-top:10px;
+}
 </style>
 </head>
 
@@ -32,10 +75,10 @@ select{width:100%;padding:6px;margin-top:10px;}
 <div id="map"></div>
 
 <div id="sidebar">
-<h2>📊 OOH Dashboard</h2>
+<h2>📊 OOH Intelligence</h2>
 
 <select id="comunaFilter">
-<option value="">Todas las comunas</option>
+<option value="">Todas</option>
 </select>
 
 <div class="kpi" id="kpiTiendas"></div>
@@ -47,7 +90,7 @@ select{width:100%;padding:6px;margin-top:10px;}
 <button onclick="toggleLayer('h8')">H8</button>
 
 <h3>Detalle</h3>
-<div id="detalle"></div>
+<div id="detalle">Selecciona un elemento</div>
 </div>
 
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
@@ -73,221 +116,163 @@ let capaComunas = L.layerGroup().addTo(map);
 
 let state = {h3:false,h6:false,h8:false};
 
+const detalle = document.getElementById("detalle");
 const kpiTiendas = document.getElementById("kpiTiendas");
 const kpiSoportes = document.getElementById("kpiSoportes");
-const detalle = document.getElementById("detalle");
 const comunaFilter = document.getElementById("comunaFilter");
 
-
-// =====================
-// DISTANCIA REAL
-// =====================
+// ================= DISTANCIA
 function getDistance(lat1, lon1, lat2, lon2){
-const R = 6371;
-const dLat = (lat2-lat1) * Math.PI/180;
-const dLon = (lon2-lon1) * Math.PI/180;
-
-const a =
-Math.sin(dLat/2)**2 +
-Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180) *
+const R=6371;
+const dLat=(lat2-lat1)*Math.PI/180;
+const dLon=(lon2-lon1)*Math.PI/180;
+const a=Math.sin(dLat/2)**2+
+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*
 Math.sin(dLon/2)**2;
-
-return R * (2*Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
+return R*(2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a)));
 }
 
-
-// =====================
-// COLORES HEX
-// =====================
-function getColor(d){
-return d > 50 ? "#ff0000" :
-d > 20 ? "#ff8800" :
-d > 10 ? "#ffff00" :
-"#00ff00";
-}
-
-
-// =====================
-// COMUNAS
-// =====================
+// ================= COMUNAS
 function loadComunas(){
 capaComunas.clearLayers();
 
 L.geoJSON(comunas,{
-style:{color:"#888",weight:1,fillOpacity:0.05},
+style:{color:"#64748b",weight:1,fillOpacity:0.05},
 onEachFeature:(f,l)=>{
-l.on("mouseover",()=>l.setStyle({fillOpacity:0.2}));
-l.on("mouseout",()=>l.setStyle({fillOpacity:0.05}));
+l.on("mouseover",()=>{
+l.setStyle({fillOpacity:0.3,color:"#38bdf8"});
+});
+l.on("mouseout",()=>{
+l.setStyle({fillOpacity:0.05,color:"#64748b"});
+});
 }
 }).addTo(capaComunas);
 }
 
-
-// =====================
-// HEXÁGONOS
-// =====================
+// ================= HEX
 function drawHex(data,color){
 L.geoJSON(data,{
-style:f=>({
+style:{
 color:color,
-fillColor:getColor(f.properties.soportes||0),
-fillOpacity:0.35
-})
+weight:1,
+fillOpacity:0.3
+},
+onEachFeature:(f,l)=>{
+l.on("click",()=>{
+detalle.innerHTML=`
+<b>Hexágono</b><br>
+Soportes: ${f.properties.soportes || 0}
+`;
+});
+}
 }).addTo(capaHex);
 }
 
 function loadHex(){
 capaHex.clearLayers();
 
-if(state.h3) drawHex(h3,"#2563eb");
-if(state.h6) drawHex(h6,"#7c3aed");
+if(state.h3) drawHex(h3,"#3b82f6");
+if(state.h6) drawHex(h6,"#8b5cf6");
 if(state.h8) drawHex(h8,"#f59e0b");
 }
 
-
-// =====================
-// TIENDAS + ANALISIS
-// =====================
+// ================= TIENDAS
 function loadTiendas(){
 capaTiendas.clearLayers();
 
-let selected = comunaFilter.value;
+tricot.forEach(t=>{
 
-let tiendasFiltradas = selected
-? tricot.filter(t=>t.comuna===selected)
-: tricot;
-
-tiendasFiltradas.forEach(t=>{
-
-let cercanos300=0,cercanos500=0,cercanos1000=0;
+let cercanos=0;
 
 soportes.forEach(s=>{
-let d = getDistance(t.lat,t.lng,s.lat,s.lng);
-if(d<=0.3) cercanos300++;
-if(d<=0.5) cercanos500++;
-if(d<=1) cercanos1000++;
+if(getDistance(t.lat,t.lng,s.lat,s.lng)<=0.5) cercanos++;
 });
 
-let m = L.marker([t.lat,t.lng])
-.bindPopup(`
-<b>${t.nombre}</b><br>
-${t.comuna}<br><br>
-300m: ${cercanos300}<br>
-500m: ${cercanos500}<br>
-1km: ${cercanos1000}<br>
+let marker=L.marker([t.lat,t.lng],{
+icon:L.icon({
+iconUrl:"https://cdn-icons-png.flaticon.com/512/1077/1077114.png",
+iconSize:[30,30]
+})
+});
+
+marker.bindPopup(`
+<b>🏬 TIENDA</b><br>
+${t.nombre}<br>
+${t.comuna}<br>
+Soportes cercanos: ${cercanos}
 `);
 
-m.on("click",()=>{
-detalle.innerHTML = `
-<h4>${t.nombre}</h4>
-${t.comuna}<br><br>
-
-<b>Impacto OOH</b><br>
-300m: ${cercanos300}<br>
-500m: ${cercanos500}<br>
-1km: ${cercanos1000}<br>
-
-<b>Nivel:</b> ${cercanos500>20?"🔥 Alto":cercanos500>10?"⚡ Medio":"🟢 Bajo"}
+marker.on("click",()=>{
+detalle.innerHTML=`
+<h3>${t.nombre}</h3>
+Comuna: ${t.comuna}<br>
+Soportes 500m: ${cercanos}
 `;
 });
 
-capaTiendas.addLayer(m);
+capaTiendas.addLayer(marker);
 
 });
 }
 
-
-// =====================
-// SOPORTES
-// =====================
+// ================= SOPORTES
 function loadSoportes(){
 capaSoportes.clearLayers();
 
-let selected = comunaFilter.value;
+soportes.forEach(s=>{
 
-let soportesFiltrados = selected
-? soportes.filter(s=>s.comuna===selected)
-: soportes;
+let marker=L.marker([s.lat,s.lng],{
+icon:L.icon({
+iconUrl:"https://cdn-icons-png.flaticon.com/512/684/684908.png",
+iconSize:[20,20]
+})
+});
 
-soportesFiltrados.forEach(s=>{
-capaSoportes.addLayer(L.marker([s.lat,s.lng]));
+marker.bindPopup(`
+<b>📍 SOPORTE</b><br>
+Categoría: ${s.categoria || "N/A"}<br>
+Tipo: ${s.tipo || "N/A"}
+`);
+
+capaSoportes.addLayer(marker);
+
 });
 }
 
-
-// =====================
-// KPIs
-// =====================
+// ================= KPIs
 function updateKPIs(){
-
-let selected = comunaFilter.value;
-
-let tiendasFiltradas = selected
-? tricot.filter(t=>t.comuna===selected)
-: tricot;
-
-let soportesFiltrados = selected
-? soportes.filter(s=>s.comuna===selected)
-: soportes;
-
-kpiTiendas.innerText = "Tiendas: "+tiendasFiltradas.length;
-kpiSoportes.innerText = "Soportes: "+soportesFiltrados.length;
-
+kpiTiendas.innerText="Tiendas: "+tricot.length;
+kpiSoportes.innerText="Soportes: "+soportes.length;
 }
 
-
-// =====================
-// FILTRO COMUNA
-// =====================
+// ================= FILTRO
 function loadFilter(){
-
-let comunasUnicas = [...new Set(tricot.map(t=>t.comuna))];
+let comunasUnicas=[...new Set(tricot.map(t=>t.comuna))];
 
 comunasUnicas.forEach(c=>{
-let opt = document.createElement("option");
-opt.value = c;
-opt.text = c;
+let opt=document.createElement("option");
+opt.value=c;
+opt.text=c;
 comunaFilter.appendChild(opt);
 });
 
 comunaFilter.onchange=()=>{
-
-let selected = comunaFilter.value;
-
-if(selected){
-let layer = L.geoJSON(comunas);
-
-layer.eachLayer(l=>{
-if(l.feature.properties.NOM_COM === selected){
-map.fitBounds(l.getBounds());
-}
-});
-}
-
 loadTiendas();
 loadSoportes();
-updateKPIs();
-
 };
 }
 
-
-// =====================
-// CONTROL CAPAS
-// =====================
+// ================= CONTROL
 function toggleLayer(layer){
-state[layer] = !state[layer];
+state[layer]=!state[layer];
 loadHex();
 }
 
-
-// =====================
-// INIT
-// =====================
+// ================= INIT
 loadComunas();
-loadFilter();
 loadTiendas();
 loadSoportes();
+loadFilter();
 updateKPIs();
 
 </script>
