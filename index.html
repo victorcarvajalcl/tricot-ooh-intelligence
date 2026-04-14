@@ -12,6 +12,7 @@
 body{margin:0;font-family:Arial;background:#0b1220;color:#fff}
 .app{display:flex;height:100vh}
 
+/* SIDEBAR */
 .sidebar{
 width:340px;
 background:#0b1324;
@@ -31,8 +32,10 @@ font-size:22px;
 font-weight:bold;
 }
 
+/* MAPA */
 .map{flex:1}
 
+/* CHIPS */
 .chip{
 display:inline-block;
 padding:6px 10px;
@@ -43,6 +46,7 @@ cursor:pointer;
 }
 .chip.active{background:#2563eb}
 
+/* MOBILE */
 @media(max-width:768px){
 .sidebar{
 position:absolute;
@@ -81,6 +85,11 @@ z-index:1200;
 </div>
 
 <div class="card">
+<div>Comuna seleccionada</div>
+<div id="comunaSel">—</div>
+</div>
+
+<div class="card">
 <div>Insight</div>
 <div id="insight">—</div>
 </div>
@@ -88,6 +97,7 @@ z-index:1200;
 <div class="card">
 <div class="chip active" data-layer="soportes">Soportes</div>
 <div class="chip active" data-layer="tricot">Tricot</div>
+<div class="chip active" data-layer="comunas">Comunas</div>
 <div class="chip active" data-layer="h3">H3</div>
 <div class="chip active" data-layer="h6">H6</div>
 <div class="chip" data-layer="h8">H8</div>
@@ -112,12 +122,13 @@ const map=L.map('map').setView([-33.45,-70.66],11);
 L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(map);
 
 // ================= DATA
-let soportes,tricot,h3,h6,h8;
+let soportes=[],tricot=[],h3,h6,h8,comunas;
 
 // ================= CAPAS
 let capaH3=L.layerGroup().addTo(map);
 let capaH6=L.layerGroup().addTo(map);
 let capaH8=L.layerGroup().addTo(map);
+let capaComunas=L.layerGroup().addTo(map);
 
 let cluster=L.markerClusterGroup({
 maxClusterRadius:50,
@@ -138,16 +149,17 @@ iconSize:[14,14]
 });
 
 // ================= ESTADO
-let state={soportes:true,tricot:true,h3:true,h6:true,h8:false};
+let state={soportes:true,tricot:true,h3:true,h6:true,h8:false,comunas:true};
 
 // ================= LOAD
 Promise.all([
 fetch("data/soportes_h3.json").then(r=>r.json()),
-fetch("data/tricot.json").then(r=>r.json()), // ✅ CORREGIDO
+fetch("data/tricot.json").then(r=>r.json()),
 fetch("data/h3.geojson").then(r=>r.json()).catch(()=>null),
 fetch("data/h6.geojson").then(r=>r.json()),
-fetch("data/h8.geojson").then(r=>r.json())
-]).then(([s,t,h3d,h6d,h8d])=>{
+fetch("data/h8.geojson").then(r=>r.json()),
+fetch("data/comunas.geojson").then(r=>r.json())
+]).then(([s,t,h3d,h6d,h8d,c])=>{
 console.log("soportes:",s.length);
 console.log("tricot:",t.length);
 
@@ -156,6 +168,7 @@ tricot=t;
 h3=h3d;
 h6=h6d;
 h8=h8d;
+comunas=c;
 
 init();
 });
@@ -185,14 +198,21 @@ capaTricot.clearLayers();
 capaH3.clearLayers();
 capaH6.clearLayers();
 capaH8.clearLayers();
+capaComunas.clearLayers();
 
-// ================= HEX
 let z=map.getZoom();
 
+// ================= H3
 if(z<9 && state.h3 && h3){
-L.geoJSON(h3,{style:{color:"#334155",fillOpacity:0.05}}).addTo(capaH3);
+L.geoJSON(h3,{
+style:{color:"#334155",fillOpacity:0.05},
+onEachFeature:(f,l)=>{
+l.bindPopup(`<b>H3</b><br>ID: ${f.properties.h3}`);
+}
+}).addTo(capaH3);
 }
 
+// ================= H6
 if(z>=9 && z<=13 && state.h6){
 L.geoJSON(h6,{
 style:f=>{
@@ -204,19 +224,55 @@ fillOpacity:0.35
 };
 },
 onEachFeature:(f,l)=>{
+let s=f.properties.soportes||0;
 l.bindPopup(`
 <b>H6</b><br>
-Soportes: ${f.properties.soportes}<br>
-💡 ${getInsight(f.properties.soportes)}
+Soportes: ${s}<br>
+💡 ${getInsight(s)}
 `);
 }
 }).addTo(capaH6);
 }
 
+// ================= H8
 if(z>13 && state.h8){
 L.geoJSON(h8,{
 style:{color:"#9333ea",fillOpacity:0.4}
 }).addTo(capaH8);
+}
+
+// ================= COMUNAS
+if(state.comunas && comunas){
+L.geoJSON(comunas,{
+style:{color:"#94a3b8",weight:1,fillOpacity:0},
+onEachFeature:(f,l)=>{
+
+let nombre = f.properties.NOM_COM || f.properties.Comuna;
+
+l.bindTooltip(nombre);
+
+l.on('mouseover',()=>{
+l.setStyle({weight:3,color:"#22c55e"});
+});
+
+l.on('mouseout',()=>{
+l.setStyle({weight:1,color:"#94a3b8"});
+});
+
+l.on('click',()=>{
+
+let count = soportes.filter(s=>clean(s.comuna)===clean(nombre)).length;
+
+document.getElementById("comunaSel").innerText = nombre;
+
+document.getElementById("insight").innerText =
+count>200?"🔥 Alta saturación":
+count>100?"⚡ Media":
+"🧊 Oportunidad";
+
+});
+}
+}).addTo(capaComunas);
 }
 
 // ================= SOPORTES
@@ -242,6 +298,8 @@ if(state.tricot){
 tricot.forEach(t=>{
 if(!t.lat || !t.lng) return;
 
+let nombre = t.nombre || "Tienda Tricot";
+
 let cercanos=soportes.filter(s=>s.h8===t.h8).length;
 
 let nivel=
@@ -253,7 +311,7 @@ cercanos>5?"🟡 Medio":
 let m=L.marker([t.lat,t.lng],{icon:iconTricot});
 
 m.bindPopup(`
-<b>🏬 TRICOT</b><br>
+<b>🏬 ${nombre}</b><br>
 📍 ${t.comuna||'-'}<br>
 📊 Soportes cercanos: ${cercanos}<br>
 💡 ${nivel}
@@ -266,12 +324,13 @@ capaTricot.addLayer(m);
 // KPI
 kpiSoportes.innerText=soportes.length;
 
-// asegurar capas arriba
+// ORDEN CAPAS
 cluster.bringToFront();
 capaTricot.bringToFront();
+
 }
 
-// ================= FUNCIONES
+// ================= UTILS
 function getColor(s){
 if(s>20)return "#1d4ed8";
 if(s>10)return "#3b82f6";
@@ -284,6 +343,10 @@ if(s>20)return "Zona caliente";
 if(s>10)return "Alta actividad";
 if(s>5)return "Media";
 return "Oportunidad";
+}
+
+function clean(str){
+return (str||"").toLowerCase().trim();
 }
 
 // ================= MOBILE
