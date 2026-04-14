@@ -9,26 +9,88 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css"/>
 
 <style>
-body{margin:0;display:flex;font-family:Arial;background:#0b1220}
-#sidebar{width:360px;background:#0b1220;color:#fff;padding:15px}
-#map{flex:1;height:100vh}
+body{margin:0;font-family:Arial;background:#0b1220;color:#fff}
+.app{display:flex;height:100vh}
 
-.chip{background:#081a3b;padding:8px 12px;border-radius:20px;cursor:pointer;margin:5px;display:inline-block}
+/* SIDEBAR */
+.sidebar{
+width:340px;
+background:#0b1324;
+padding:15px;
+overflow:auto;
+}
+
+.card{
+background:#111827;
+padding:12px;
+border-radius:10px;
+margin-bottom:10px;
+}
+
+.kpi{
+font-size:22px;
+font-weight:bold;
+}
+
+/* MAPA */
+.map{flex:1}
+
+/* CHIPS */
+.chip{
+display:inline-block;
+padding:6px 10px;
+margin:4px;
+background:#1e293b;
+border-radius:20px;
+cursor:pointer;
+}
+
 .chip.active{background:#2563eb}
 
-.panel{margin-bottom:15px}
+/* RESPONSIVE */
+@media(max-width:768px){
+.sidebar{
+position:absolute;
+z-index:1000;
+width:85%;
+height:100%;
+left:-100%;
+transition:0.3s;
+}
+.sidebar.open{left:0}
+.toggle{
+position:absolute;
+top:10px;
+left:10px;
+background:#2563eb;
+padding:8px;
+border-radius:6px;
+cursor:pointer;
+z-index:1200;
+}
+}
 </style>
 </head>
 
 <body>
 
-<div id="sidebar">
+<div class="app">
 
-<h2>Tricot OOH Intelligence</h2>
+<div class="sidebar" id="sidebar">
 
-<div class="panel" id="stats"></div>
+<h2>OOH Intelligence</h2>
 
-<div class="panel">
+<div class="card">
+<div>Soportes</div>
+<div class="kpi" id="kpiSoportes">0</div>
+</div>
+
+<div class="card">
+<div>Insight</div>
+<div id="insight">—</div>
+</div>
+
+<div class="card">
 <div class="chip active" data-layer="soportes">Soportes</div>
 <div class="chip active" data-layer="tricot">Tricot</div>
 <div class="chip active" data-layer="h3">H3</div>
@@ -38,7 +100,11 @@ body{margin:0;display:flex;font-family:Arial;background:#0b1220}
 
 </div>
 
-<div id="map"></div>
+<div class="map" id="map"></div>
+
+</div>
+
+<div class="toggle" onclick="toggleSidebar()">☰</div>
 
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
@@ -49,24 +115,29 @@ const map=L.map('map').setView([-33.45,-70.66],11);
 
 L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(map);
 
-// ================= DATA
+// DATA
 let soportes,tricot,h3,h6,h8;
 
-// ================= CAPAS
-let cluster=L.markerClusterGroup({maxClusterRadius:50});
+// CAPAS
+let cluster=L.markerClusterGroup();
 let capaTricot=L.layerGroup();
 let capaH3,capaH6,capaH8;
 
-// ================= ESTADO
+// ESTADO
 let state={soportes:true,tricot:true,h3:true,h6:true,h8:false};
 
-// ================= ICONO TRICOT
+// ICONOS
 const iconTricot=L.divIcon({
-html:"<div style='font-size:22px'>🏬</div>",
-iconSize:[20,20]
+html:"<div style='font-size:26px'>🏬</div>",
+iconSize:[30,30]
 });
 
-// ================= LOAD
+const iconSoporte=L.divIcon({
+html:"<div style='color:red;font-size:12px'>●</div>",
+iconSize:[10,10]
+});
+
+// LOAD
 Promise.all([
 fetch("data/soportes_h3.json").then(r=>r.json()),
 fetch("data/tricot_h3.json").then(r=>r.json()),
@@ -82,7 +153,7 @@ h8=h8d;
 init();
 });
 
-// ================= INIT
+// INIT
 function init(){
 
 document.querySelectorAll(".chip").forEach(chip=>{
@@ -95,10 +166,11 @@ render();
 });
 
 map.on("zoomend moveend",render);
+
 render();
 }
 
-// ================= RENDER
+// RENDER
 function render(){
 
 cluster.clearLayers();
@@ -108,21 +180,18 @@ if(capaH3) map.removeLayer(capaH3);
 if(capaH6) map.removeLayer(capaH6);
 if(capaH8) map.removeLayer(capaH8);
 
-// ================= SOPORTES
+// SOPORTES
 if(state.soportes){
 soportes.forEach(p=>{
-if(!p.lat||!p.lng)return;
+if(!p.lat)return;
 
-let m=L.circleMarker([p.lat,p.lng],{
-radius:4,
-color:"#ef4444"
-});
+let m=L.marker([p.lat,p.lng],{icon:iconSoporte});
 
 m.bindPopup(`
 <b>${p.nombre||'Soporte'}</b><br>
-📍 ${p.comuna||'-'}<br>
-🏷 ${p.categoria||'-'}<br>
-🧩 H6: ${p.h6}<br>
+📍 ${p.comuna}<br>
+🏷 ${p.categoria}<br>
+🧩 H3: ${p.h3}<br>
 🔎 H8: ${p.h8}
 `);
 
@@ -132,21 +201,22 @@ cluster.addLayer(m);
 map.addLayer(cluster);
 }
 
-// ================= TRICOT (con análisis real H3)
+// TRICOT
 if(state.tricot){
 tricot.forEach(t=>{
 
-let cercanos = soportes.filter(s=>s.h8===t.h8).length;
+let cercanos=soportes.filter(s=>s.h8===t.h8).length;
 
-let nivel =
-cercanos>25?"🔥 Alta cobertura":
-cercanos>10?"⚡ Media":
+let nivel=
+cercanos>30?"🔥 Saturado":
+cercanos>15?"⚡ Alto":
+cercanos>5?"🟡 Medio":
 "🧊 Oportunidad";
 
 let m=L.marker([t.lat,t.lng],{icon:iconTricot});
 
 m.bindPopup(`
-<b>TIENDA TRICOT</b><br>
+<b>🏬 TIENDA TRICOT</b><br>
 📍 ${t.comuna}<br>
 📊 Soportes H8: ${cercanos}<br>
 💡 ${nivel}
@@ -158,18 +228,18 @@ capaTricot.addLayer(m);
 map.addLayer(capaTricot);
 }
 
-// ================= HEX SEGÚN ZOOM
-let z=map.getZoom();
-
 // H3
-if(z<=9 && state.h3 && h3){
+if(map.getZoom()<9 && state.h3 && h3){
 capaH3=L.geoJSON(h3,{
-style:{color:"#334155",fillOpacity:0.05}
+style:{color:"#334155",fillOpacity:0.05},
+onEachFeature:(f,l)=>{
+l.bindPopup(`<b>H3</b><br>ID: ${f.properties.h3}`);
+}
 }).addTo(map);
 }
 
 // H6
-if(z>9 && z<=13 && state.h6){
+if(map.getZoom()>=9 && map.getZoom()<=13 && state.h6){
 capaH6=L.geoJSON(h6,{
 style:f=>{
 let s=f.properties.soportes||0;
@@ -191,7 +261,7 @@ Soportes: ${s}<br>
 }
 
 // H8
-if(z>13 && state.h8){
+if(map.getZoom()>13 && state.h8){
 capaH8=L.geoJSON(h8,{
 style:f=>{
 let s=f.properties.soportes||0;
@@ -203,17 +273,20 @@ fillOpacity:0.4
 },
 onEachFeature:(f,l)=>{
 let s=f.properties.soportes||0;
-l.bindPopup(`<b>H8</b><br>Soportes: ${s}`);
+l.bindPopup(`
+<b>H8</b><br>
+Soportes: ${s}
+`);
 }
 }).addTo(map);
 }
 
 // KPI
-stats.innerHTML=`Soportes: ${soportes.length}`;
+kpiSoportes.innerText=soportes.length;
 
 }
 
-// ================= COLOR
+// COLOR
 function getColor(s){
 if(s>20)return "#1d4ed8";
 if(s>10)return "#3b82f6";
@@ -221,11 +294,17 @@ if(s>5)return "#60a5fa";
 return "#93c5fd";
 }
 
-// ================= INSIGHT
+// INSIGHT
 function getInsight(s){
-if(s>20)return "🔥 Zona caliente";
-if(s>10)return "⚡ Alta actividad";
-return "🧊 Oportunidad";
+if(s>20)return "Zona caliente";
+if(s>10)return "Alta actividad";
+if(s>5)return "Media";
+return "Oportunidad";
+}
+
+// MOBILE
+function toggleSidebar(){
+document.getElementById("sidebar").classList.toggle("open");
 }
 
 </script>
