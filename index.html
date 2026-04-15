@@ -27,7 +27,6 @@ width:100%;padding:10px;margin-bottom:10px;border-radius:10px;background:#091a36
 .chip{
 display:inline-block;padding:8px 12px;margin:3px;background:#0a1b3a;border-radius:20px;cursor:pointer
 }
-
 .chip.active{background:#2563eb}
 
 .menu-btn{
@@ -84,7 +83,7 @@ background:#2563eb;color:white;border:none;padding:10px;border-radius:8px
 
 <script>
 
-// MENU
+// MENU MOBILE
 function toggleMenu(){
 document.getElementById('sidebar').classList.toggle('open');
 setTimeout(()=>map.invalidateSize(),300);
@@ -97,10 +96,12 @@ L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').ad
 let soportes=[],tiendas=[];
 let filtrados=[],tiendasFiltradas=[];
 
+// 🔥 CLUSTER PRO VISUAL
 let cluster=L.markerClusterGroup({
 disableClusteringAtZoom:16,
 showCoverageOnHover:true,
 zoomToBoundsOnClick:true,
+
 iconCreateFunction:function(cluster){
 const count=cluster.getChildCount();
 return L.divIcon({
@@ -120,16 +121,14 @@ className:''
 let h3Layer,h6Layer,h8Layer;
 
 const layersState={
-soportes:true,
-tiendas:true,
-h3:true,
-h6:true,
-h8:false
+soportes:true,tiendas:true,h3:true,h6:true,h8:false
 };
 
-const tiendaIcon=L.divIcon({
+// ICONO TIENDAS
+const tiendaIcon = L.divIcon({
 html:`<div style="
-background:#2563eb;width:24px;height:24px;border-radius:50%;
+background:#2563eb;
+width:24px;height:24px;border-radius:50%;
 border:3px solid white;
 box-shadow:0 0 12px rgba(37,99,235,0.9);
 "></div>`,
@@ -156,7 +155,8 @@ init();
 renderHex(h3,h6,h8);
 render();
 
-map.on('zoomend',controlarZoom);
+map.on('zoomend', controlarZoom);
+
 }
 
 // ZOOM HEX
@@ -181,19 +181,15 @@ document.getElementById('categoria').innerHTML='<option value="">Todas</option>'
 document.getElementById(id).addEventListener('input',filtrar);
 });
 
-// 🔥 FIX BOTONES
 document.querySelectorAll('.chip').forEach(c=>{
 c.onclick=()=>{
 const k=c.dataset.layer;
-
 layersState[k]=!layersState[k];
 c.classList.toggle('active');
-
-render();
 updateHexVisibility();
+render();
 };
 });
-
 }
 
 // FILTRO
@@ -222,47 +218,61 @@ function render(){
 map.removeLayer(cluster);
 cluster.clearLayers();
 
-let tiendasLayer=L.layerGroup();
+let tiendasLayer = L.layerGroup();
 
-// 🔴 SOPORTES (CONTROL REAL)
+// SOPORTES
 if(layersState.soportes){
 filtrados.forEach(p=>{
 
 const zoom=map.getZoom();
-const size=zoom>=16?7:zoom>=14?5:4;
+const size = zoom>=16 ? 7 : zoom>=14 ? 5 : 4;
 
 const m=L.circleMarker([p.lat,p.lng],{
-radius:size,color:'#fff',fillColor:'#ef4444',fillOpacity:1
+radius:size,
+color:'#fff',
+fillColor:'#ef4444',
+fillOpacity:1
 });
-
-m.on('mouseover',()=>m.setStyle({radius:size+2}));
-m.on('mouseout',()=>m.setStyle({radius:size}));
 
 m.bindPopup(`
 <b>📍 SOPORTE</b><br>
-${p.nombre}<br>${p.comuna}<br>${p.categoria}<br>${p.tipo}
+${p.nombre}<br>
+${p.comuna}<br>
+${p.categoria}<br>
+${p.tipo}
 `);
 
 cluster.addLayer(m);
-
 });
 }
 
-// 🔵 TIENDAS (CONTROL REAL)
+// TIENDAS
 if(layersState.tiendas){
 tiendasFiltradas.forEach(t=>{
 
 const m=L.marker([t.lat,t.lng],{icon:tiendaIcon});
 
 m.bindPopup(()=>{
-const cercanos=filtrados.filter(s=>map.distance([t.lat,t.lng],[s.lat,s.lng])<500);
-let promedio=cercanos.length?Math.round(cercanos.reduce((a,b)=>a+map.distance([t.lat,t.lng],[b.lat,b.lng]),0)/cercanos.length):0;
 
-return `<b>🏬 ${t.nombre}</b><br>${t.comuna}<br>Soportes:${cercanos.length}<br>Dist:${promedio}m`;
+const cercanos=filtrados.filter(s=>map.distance([t.lat,t.lng],[s.lat,s.lng])<500);
+
+let nivel="🟢 Baja";
+if(cercanos.length>30) nivel="🔴 Alta";
+else if(cercanos.length>10) nivel="🟡 Media";
+
+let distancias=cercanos.map(s=>map.distance([t.lat,t.lng],[s.lat,s.lng]));
+let promedio=distancias.length?Math.round(distancias.reduce((a,b)=>a+b,0)/distancias.length):0;
+
+return `
+<b>🏬 ${t.nombre}</b><br>
+${t.comuna}<br><br>
+📊 Soportes: ${cercanos.length}<br>
+📏 Distancia promedio: ${promedio} m<br>
+Nivel: ${nivel}
+`;
 });
 
 tiendasLayer.addLayer(m);
-
 });
 }
 
@@ -273,26 +283,59 @@ map.addLayer(tiendasLayer);
 document.getElementById('totalSoportes').innerText=filtrados.length;
 document.getElementById('totalTiendas').innerText=tiendasFiltradas.length;
 document.getElementById('totalComunas').innerText=new Set(filtrados.map(s=>s.comuna)).size;
-
 }
 
-// HEX
+// 🔥 HEX PRO
 function renderHex(h3,h6,h8){
 
-h3Layer=L.geoJSON(h3,{style:{color:'#22c55e',fillOpacity:0.2}}).addTo(map);
-h6Layer=L.geoJSON(h6,{style:{color:'#2563eb',fillOpacity:0.3}}).addTo(map);
-h8Layer=L.geoJSON(h8,{style:{color:'#9333ea',fillOpacity:0.25}}).addTo(map);
+h3Layer=L.geoJSON(h3,{
+style:{color:'#22c55e',fillOpacity:0.15},
+onEachFeature:(f,l)=>popupHex(f,l,'H3')
+}).addTo(map);
+
+h6Layer=L.geoJSON(h6,{
+style:{color:'#2563eb',fillOpacity:0.2},
+onEachFeature:(f,l)=>popupHex(f,l,'H6')
+}).addTo(map);
+
+h8Layer=L.geoJSON(h8,{
+style:{color:'#9333ea',fillOpacity:0.25},
+onEachFeature:(f,l)=>popupHex(f,l,'H8')
+}).addTo(map);
 
 updateHexVisibility();
 }
 
-function updateHexVisibility(){
-if(h3Layer) map[layersState.h3?'addLayer':'removeLayer'](h3Layer);
-if(h6Layer) map[layersState.h6?'addLayer':'removeLayer'](h6Layer);
-if(h8Layer) map[layersState.h8?'addLayer':'removeLayer'](h8Layer);
+// 🧠 ANALISIS HEX PRO
+function popupHex(f,l,tipo){
+
+l.on('click',()=>{
+
+const bounds=l.getBounds();
+
+const dentro=filtrados.filter(s=>{
+return bounds.contains([s.lat,s.lng]);
+});
+
+let nivel="🟢 Baja";
+if(dentro.length>50) nivel="🔴 Alta";
+else if(dentro.length>20) nivel="🟡 Media";
+
+l.bindPopup(`
+<b>🧩 HEX ${tipo}</b><br>
+Soportes: ${dentro.length}<br>
+Nivel: ${nivel}
+`).openPopup();
+
+});
 }
 
-// RESET
+function updateHexVisibility(){
+if(h3Layer) map[layersState.h3 ? 'addLayer' : 'removeLayer'](h3Layer);
+if(h6Layer) map[layersState.h6 ? 'addLayer' : 'removeLayer'](h6Layer);
+if(h8Layer) map[layersState.h8 ? 'addLayer' : 'removeLayer'](h8Layer);
+}
+
 function reset(){
 filtrados=soportes;
 tiendasFiltradas=tiendas;
