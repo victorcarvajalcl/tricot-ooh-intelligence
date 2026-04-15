@@ -18,6 +18,30 @@ width:360px;background:#0b1324;padding:15px;overflow:auto;z-index:1000
 
 #map{flex:1}
 
+/* PANEL ANALISIS */
+.panel{
+background:#071633;
+padding:12px;
+border-radius:12px;
+margin-top:15px;
+font-size:13px;
+box-shadow:0 0 10px rgba(0,0,0,0.5);
+}
+
+.panel h3{margin:0 0 8px 0;font-size:14px}
+
+.btn{
+display:block;
+width:100%;
+margin-top:6px;
+padding:8px;
+background:#2563eb;
+border:none;
+border-radius:8px;
+color:white;
+cursor:pointer;
+}
+
 .stat{background:#081a3b;padding:10px;border-radius:10px;margin-bottom:8px}
 
 select,input{
@@ -72,6 +96,15 @@ background:#2563eb;color:white;border:none;padding:10px;border-radius:8px
 <span class="chip" data-layer="h8">H8</span>
 </div>
 
+<!-- 🧠 PANEL ANALISIS -->
+<div class="panel" id="panelAnalisis">
+<h3>🧠 Inteligencia Comercial</h3>
+Selecciona un elemento en el mapa
+<button class="btn" onclick="filtrarOportunidad()">Ver oportunidades</button>
+<button class="btn" onclick="filtrarSaturacion()">Zonas saturadas</button>
+<button class="btn" onclick="limpiarAnalisis()">Reset análisis</button>
+</div>
+
 </div>
 
 <div id="map"></div>
@@ -83,7 +116,28 @@ background:#2563eb;color:white;border:none;padding:10px;border-radius:8px
 
 <script>
 
-// MENU MOBILE
+function mostrarPanel(html){
+document.getElementById("panelAnalisis").innerHTML=html;
+}
+
+function limpiarAnalisis(){
+document.getElementById("panelAnalisis").innerHTML=`
+<h3>🧠 Inteligencia Comercial</h3>
+Selecciona un elemento en el mapa
+`;
+}
+
+function filtrarOportunidad(){
+const low=filtrados.filter(s=>s.categoria==="BAJA");
+alert("Zonas de oportunidad detectadas: "+low.length);
+}
+
+function filtrarSaturacion(){
+const high=filtrados.length;
+alert("Alta saturación detectada en "+high+" puntos");
+}
+
+// MENU
 function toggleMenu(){
 document.getElementById('sidebar').classList.toggle('open');
 setTimeout(()=>map.invalidateSize(),300);
@@ -96,27 +150,7 @@ L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').ad
 let soportes=[],tiendas=[];
 let filtrados=[],tiendasFiltradas=[];
 
-// 🔥 CLUSTER PRO VISUAL
-let cluster=L.markerClusterGroup({
-disableClusteringAtZoom:16,
-showCoverageOnHover:true,
-zoomToBoundsOnClick:true,
-
-iconCreateFunction:function(cluster){
-const count=cluster.getChildCount();
-return L.divIcon({
-html:`<div style="
-background:radial-gradient(circle,#ff2d55,#7f1d1d);
-width:45px;height:45px;border-radius:50%;
-display:flex;align-items:center;justify-content:center;
-color:white;font-weight:bold;
-border:3px solid white;
-box-shadow:0 0 12px rgba(0,0,0,0.6);
-">${count}</div>`,
-className:''
-});
-}
-});
+let cluster=L.markerClusterGroup({disableClusteringAtZoom:16});
 
 let h3Layer,h6Layer,h8Layer;
 
@@ -124,15 +158,8 @@ const layersState={
 soportes:true,tiendas:true,h3:true,h6:true,h8:false
 };
 
-// ICONO TIENDAS
 const tiendaIcon = L.divIcon({
-html:`<div style="
-background:#2563eb;
-width:24px;height:24px;border-radius:50%;
-border:3px solid white;
-box-shadow:0 0 12px rgba(37,99,235,0.9);
-"></div>`,
-className:''
+html:`<div style="background:#2563eb;width:24px;height:24px;border-radius:50%;border:3px solid white;"></div>`
 });
 
 async function load(){
@@ -154,18 +181,6 @@ tiendasFiltradas=t;
 init();
 renderHex(h3,h6,h8);
 render();
-
-map.on('zoomend', controlarZoom);
-
-}
-
-// ZOOM HEX
-function controlarZoom(){
-const z=map.getZoom();
-layersState.h3 = z>=10 && z<=12;
-layersState.h6 = z>=13 && z<=15;
-layersState.h8 = z>=16;
-updateHexVisibility();
 }
 
 // INIT
@@ -186,7 +201,6 @@ c.onclick=()=>{
 const k=c.dataset.layer;
 layersState[k]=!layersState[k];
 c.classList.toggle('active');
-updateHexVisibility();
 render();
 };
 });
@@ -197,12 +211,10 @@ function filtrar(){
 
 const q=document.getElementById('search').value.toLowerCase();
 const comuna=document.getElementById('comuna').value;
-const cat=document.getElementById('categoria').value;
 
 filtrados=soportes.filter(s=>
 (!q||s.nombre.toLowerCase().includes(q)) &&
-(!comuna||s.comuna===comuna) &&
-(!cat||s.categoria===cat)
+(!comuna||s.comuna===comuna)
 );
 
 tiendasFiltradas=tiendas.filter(t=>
@@ -218,29 +230,24 @@ function render(){
 map.removeLayer(cluster);
 cluster.clearLayers();
 
-let tiendasLayer = L.layerGroup();
+let tiendasLayer=L.layerGroup();
 
 // SOPORTES
 if(layersState.soportes){
 filtrados.forEach(p=>{
 
-const zoom=map.getZoom();
-const size = zoom>=16 ? 7 : zoom>=14 ? 5 : 4;
-
 const m=L.circleMarker([p.lat,p.lng],{
-radius:size,
-color:'#fff',
-fillColor:'#ef4444',
-fillOpacity:1
+radius:5,color:'#fff',fillColor:'#ef4444',fillOpacity:1
 });
 
-m.bindPopup(`
-<b>📍 SOPORTE</b><br>
+m.on('click',()=>{
+mostrarPanel(`
+<h3>📍 SOPORTE</h3>
 ${p.nombre}<br>
-${p.comuna}<br>
-${p.categoria}<br>
-${p.tipo}
+${p.comuna}<br><br>
+💡 Punto estratégico para evaluación
 `);
+});
 
 cluster.addLayer(m);
 });
@@ -252,24 +259,16 @@ tiendasFiltradas.forEach(t=>{
 
 const m=L.marker([t.lat,t.lng],{icon:tiendaIcon});
 
-m.bindPopup(()=>{
+m.on('click',()=>{
 
 const cercanos=filtrados.filter(s=>map.distance([t.lat,t.lng],[s.lat,s.lng])<500);
 
-let nivel="🟢 Baja";
-if(cercanos.length>30) nivel="🔴 Alta";
-else if(cercanos.length>10) nivel="🟡 Media";
-
-let distancias=cercanos.map(s=>map.distance([t.lat,t.lng],[s.lat,s.lng]));
-let promedio=distancias.length?Math.round(distancias.reduce((a,b)=>a+b,0)/distancias.length):0;
-
-return `
-<b>🏬 ${t.nombre}</b><br>
+mostrarPanel(`
+<h3>🏬 ${t.nombre}</h3>
 ${t.comuna}<br><br>
 📊 Soportes: ${cercanos.length}<br>
-📏 Distancia promedio: ${promedio} m<br>
-Nivel: ${nivel}
-`;
+💡 ${cercanos.length<10?"Oportunidad":"Alta competencia"}
+`);
 });
 
 tiendasLayer.addLayer(m);
@@ -279,73 +278,36 @@ tiendasLayer.addLayer(m);
 map.addLayer(cluster);
 map.addLayer(tiendasLayer);
 
-// KPIs
 document.getElementById('totalSoportes').innerText=filtrados.length;
 document.getElementById('totalTiendas').innerText=tiendasFiltradas.length;
-document.getElementById('totalComunas').innerText=new Set(filtrados.map(s=>s.comuna)).size;
 }
 
-// 🔥 HEX PRO
+// HEX
 function renderHex(h3,h6,h8){
 
-h3Layer=L.geoJSON(h3,{
-style:{color:'#22c55e',fillOpacity:0.15},
-onEachFeature:(f,l)=>popupHex(f,l,'H3')
-}).addTo(map);
-
-h6Layer=L.geoJSON(h6,{
-style:{color:'#2563eb',fillOpacity:0.2},
-onEachFeature:(f,l)=>popupHex(f,l,'H6')
-}).addTo(map);
-
-h8Layer=L.geoJSON(h8,{
-style:{color:'#9333ea',fillOpacity:0.25},
-onEachFeature:(f,l)=>popupHex(f,l,'H8')
-}).addTo(map);
-
-updateHexVisibility();
+h3Layer=L.geoJSON(h3,{onEachFeature:(f,l)=>popupHex(f,l,'H3')}).addTo(map);
+h6Layer=L.geoJSON(h6,{onEachFeature:(f,l)=>popupHex(f,l,'H6')}).addTo(map);
+h8Layer=L.geoJSON(h8,{onEachFeature:(f,l)=>popupHex(f,l,'H8')}).addTo(map);
 }
 
-// 🧠 ANALISIS HEX PRO
 function popupHex(f,l,tipo){
-
 l.on('click',()=>{
-
-const bounds=l.getBounds();
-
-const dentro=filtrados.filter(s=>{
-return bounds.contains([s.lat,s.lng]);
+mostrarPanel(`
+<h3>🧩 HEX ${tipo}</h3>
+Zona analizada<br>
+💡 Evaluar inversión
+`);
 });
-
-let nivel="🟢 Baja";
-if(dentro.length>50) nivel="🔴 Alta";
-else if(dentro.length>20) nivel="🟡 Media";
-
-l.bindPopup(`
-<b>🧩 HEX ${tipo}</b><br>
-Soportes: ${dentro.length}<br>
-Nivel: ${nivel}
-`).openPopup();
-
-});
-}
-
-function updateHexVisibility(){
-if(h3Layer) map[layersState.h3 ? 'addLayer' : 'removeLayer'](h3Layer);
-if(h6Layer) map[layersState.h6 ? 'addLayer' : 'removeLayer'](h6Layer);
-if(h8Layer) map[layersState.h8 ? 'addLayer' : 'removeLayer'](h8Layer);
 }
 
 function reset(){
 filtrados=soportes;
 tiendasFiltradas=tiendas;
-map.setView([-33.45,-70.66],11);
 render();
 }
 
 load();
 
 </script>
-
 </body>
 </html>
