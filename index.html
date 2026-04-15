@@ -161,7 +161,7 @@ L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').ad
 
 let soportes=[],tiendas=[];
 let filtrados=[],tiendasFiltradas=[];
-let cluster=L.markerClusterGroup();
+let cluster=L.markerClusterGroup({ disableClusteringAtZoom:16 });
 
 let h3Layer,h6Layer,h8Layer;
 
@@ -169,15 +169,15 @@ const layersState={
 soportes:true,tiendas:true,h3:true,h6:true,h8:false
 };
 
-// ICONO TIENDAS
+// 🔵 ICONO TIENDAS DESTACADO
 const tiendaIcon = L.divIcon({
 html:`<div style="
 background:#2563eb;
-width:18px;
-height:18px;
+width:24px;
+height:24px;
 border-radius:50%;
 border:3px solid white;
-box-shadow:0 0 6px rgba(0,0,0,0.5);
+box-shadow:0 0 12px rgba(37,99,235,0.9);
 "></div>`,
 className:''
 });
@@ -207,12 +207,13 @@ map.on('zoomend', controlarZoom);
 setTimeout(()=>map.invalidateSize(),300);
 }
 
-// ZOOM
+// ZOOM HEX
 function controlarZoom(){
 const z=map.getZoom();
 layersState.h3 = z>=10 && z<=12;
 layersState.h6 = z>=13 && z<=15;
 layersState.h8 = z>=16;
+updateHexVisibility();
 }
 
 // INIT
@@ -233,6 +234,7 @@ c.onclick=()=>{
 const k=c.dataset.layer;
 layersState[k]=!layersState[k];
 c.classList.toggle('active');
+updateHexVisibility();
 render();
 };
 });
@@ -258,13 +260,16 @@ tiendasFiltradas=tiendas.filter(t=>
 render();
 }
 
-// RENDER
+// 🔥 RENDER CORREGIDO (CLAVE)
 function render(){
 
 map.removeLayer(cluster);
-cluster=L.markerClusterGroup();
+cluster=L.markerClusterGroup({ disableClusteringAtZoom:16 });
+
+let tiendasLayer = L.layerGroup();
 
 // SOPORTES
+if(layersState.soportes){
 filtrados.forEach(p=>{
 
 const m=L.circleMarker([p.lat,p.lng],{
@@ -284,8 +289,10 @@ ${p.tipo}
 
 cluster.addLayer(m);
 });
+}
 
-// TIENDAS
+// TIENDAS (SIEMPRE VISIBLES)
+if(layersState.tiendas){
 tiendasFiltradas.forEach(t=>{
 
 const m=L.marker([t.lat,t.lng],{icon:tiendaIcon});
@@ -311,10 +318,12 @@ Nivel: ${nivel}
 
 });
 
-cluster.addLayer(m);
+tiendasLayer.addLayer(m);
 });
+}
 
 map.addLayer(cluster);
+map.addLayer(tiendasLayer);
 
 // KPIs
 document.getElementById('totalSoportes').innerText=filtrados.length;
@@ -339,6 +348,8 @@ h8Layer=L.geoJSON(h8,{
 style:{color:'#9333ea',fillOpacity:0.25},
 onEachFeature:(f,l)=>popupHex(f,l)
 }).addTo(map);
+
+updateHexVisibility();
 }
 
 // POPUP HEX
@@ -363,6 +374,15 @@ Nivel: ${nivel}
 `).openPopup();
 
 });
+}
+
+// VISIBILIDAD HEX
+function updateHexVisibility(){
+
+if(h3Layer) map[layersState.h3 ? 'addLayer' : 'removeLayer'](h3Layer);
+if(h6Layer) map[layersState.h6 ? 'addLayer' : 'removeLayer'](h6Layer);
+if(h8Layer) map[layersState.h8 ? 'addLayer' : 'removeLayer'](h8Layer);
+
 }
 
 // RESET
