@@ -34,7 +34,6 @@ display:none;position:absolute;top:10px;left:10px;z-index:1100;
 background:#2563eb;color:white;border:none;padding:10px;border-radius:8px
 }
 
-/* PANEL ANALISIS */
 #panelAnalisis{
 position:absolute;
 right:10px;
@@ -97,7 +96,7 @@ font-size:13px;
 </div>
 
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-<script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.js"></script>
 
 <script>
 
@@ -119,7 +118,7 @@ L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').ad
 let soportes=[],tiendas=[];
 let filtrados=[],tiendasFiltradas=[];
 
-// CLUSTER PRO
+// CLUSTER SOLO SOPORTES
 let cluster=L.markerClusterGroup({
 disableClusteringAtZoom:16,
 showCoverageOnHover:true,
@@ -233,6 +232,7 @@ function render(){
 map.removeLayer(cluster);
 cluster.clearLayers();
 
+// 🔵 CAPA SEPARADA PARA TIENDAS
 let tiendasLayer = L.layerGroup();
 
 // SOPORTES
@@ -244,7 +244,6 @@ radius:5,color:'#fff',fillColor:'#ef4444',fillOpacity:1
 });
 
 m.on('click',()=>{
-
 const cercanos=filtrados.filter(s=>map.distance([p.lat,p.lng],[s.lat,s.lng])<300);
 
 mostrarAnalisis(`
@@ -256,20 +255,17 @@ ${p.comuna}<br><br>
 `);
 });
 
-m.bindPopup(`<b>${p.nombre}</b><br>${p.comuna}`);
-
 cluster.addLayer(m);
 });
 }
 
-// TIENDAS
+// TIENDAS (SIEMPRE VISIBLES)
 if(layersState.tiendas){
 tiendasFiltradas.forEach(t=>{
 
 const m=L.marker([t.lat,t.lng],{icon:tiendaIcon});
 
 m.on('click',()=>{
-
 const cercanos=filtrados.filter(s=>map.distance([t.lat,t.lng],[s.lat,s.lng])<500);
 let distancias=cercanos.map(s=>map.distance([t.lat,t.lng],[s.lat,s.lng]));
 
@@ -280,21 +276,20 @@ let max=Math.max(...distancias);
 mostrarAnalisis(`
 <b>🏬 ${t.nombre}</b><br>
 ${t.comuna}<br><br>
-
 📊 Soportes: ${cercanos.length}<br>
 📏 Promedio: ${promedio} m<br>
 📏 Min: ${Math.round(min||0)} m<br>
 📏 Max: ${Math.round(max||0)} m<br>
-
 💡 ${cercanos.length<10?"Oportunidad comercial":"Alta competencia"}
 `);
 });
 
-cluster.addLayer(m);
+tiendasLayer.addLayer(m);
 });
 }
 
 map.addLayer(cluster);
+map.addLayer(tiendasLayer);
 
 // KPIs
 document.getElementById('totalSoportes').innerText=filtrados.length;
@@ -315,7 +310,6 @@ updateHexVisibility();
 function popupHex(f,l,tipo){
 
 l.on('click',()=>{
-
 const bounds=l.getBounds();
 const dentro=filtrados.filter(s=>bounds.contains([s.lat,s.lng]));
 
@@ -326,7 +320,6 @@ mostrarAnalisis(`
 `);
 
 l.bindPopup(`<b>${tipo}</b><br>${dentro.length} soportes`).openPopup();
-
 });
 }
 
