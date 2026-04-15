@@ -82,10 +82,9 @@ background:#2563eb;color:white;border:none;padding:10px;border-radius:8px
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
 
-<!-- SOLO CAMBIA DESDE <script> HACIA ABAJO -->
 <script>
 
-// 📱 MENU
+// MENU
 function toggleMenu(){
 document.getElementById('sidebar').classList.toggle('open');
 setTimeout(()=>map.invalidateSize(),300);
@@ -121,10 +120,14 @@ className:''
 let h3Layer,h6Layer,h8Layer;
 
 const layersState={
-soportes:true,tiendas:true,h3:true,h6:true,h8:false
+soportes:true,
+tiendas:true,
+h3:true,
+h6:true,
+h8:false
 };
 
-const tiendaIcon = L.divIcon({
+const tiendaIcon=L.divIcon({
 html:`<div style="
 background:#2563eb;width:24px;height:24px;border-radius:50%;
 border:3px solid white;
@@ -153,56 +156,7 @@ init();
 renderHex(h3,h6,h8);
 render();
 
-map.on('zoomend', controlarZoom);
-}
-
-// 🧠 SCORE IA SIMPLE
-function calcularScore(cantidad, distancia){
-let score = cantidad * 2;
-score -= distancia/50;
-return Math.max(0, Math.min(100, Math.round(score)));
-}
-
-// 📊 PANEL LATERAL DINÁMICO
-function mostrarAnalisis(tienda, cercanos, promedio, score){
-
-const panel = document.getElementById("sidebar");
-
-panel.innerHTML += `
-<div style="background:#07142e;padding:12px;border-radius:10px;margin-top:10px">
-<h3>📍 ${tienda.nombre}</h3>
-<div>Comuna: ${tienda.comuna}</div>
-<div>Soportes: ${cercanos.length}</div>
-<div>Distancia prom: ${promedio} m</div>
-<div><b>Score: ${score}/100</b></div>
-
-<button onclick='descargarInforme("${tienda.nombre}",${cercanos.length},${promedio},${score})'>
-📄 Descargar recomendación
-</button>
-</div>
-`;
-}
-
-// 📄 DESCARGA
-function descargarInforme(nombre, soportes, distancia, score){
-
-const contenido = `
-REPORTE OOH
-
-Tienda: ${nombre}
-Soportes cercanos: ${soportes}
-Distancia promedio: ${distancia} m
-Score: ${score}/100
-
-Recomendación:
-${score>70?"ALTA PRIORIDAD":"Evaluar ubicación"}
-`;
-
-const blob = new Blob([contenido], {type: "text/plain"});
-const a = document.createElement("a");
-a.href = URL.createObjectURL(blob);
-a.download = "reporte.txt";
-a.click();
+map.on('zoomend',controlarZoom);
 }
 
 // ZOOM HEX
@@ -226,6 +180,20 @@ document.getElementById('categoria').innerHTML='<option value="">Todas</option>'
 ['search','comuna','categoria'].forEach(id=>{
 document.getElementById(id).addEventListener('input',filtrar);
 });
+
+// 🔥 FIX BOTONES
+document.querySelectorAll('.chip').forEach(c=>{
+c.onclick=()=>{
+const k=c.dataset.layer;
+
+layersState[k]=!layersState[k];
+c.classList.toggle('active');
+
+render();
+updateHexVisibility();
+};
+});
+
 }
 
 // FILTRO
@@ -254,19 +222,17 @@ function render(){
 map.removeLayer(cluster);
 cluster.clearLayers();
 
-let tiendasLayer = L.layerGroup();
+let tiendasLayer=L.layerGroup();
 
-// SOPORTES
+// 🔴 SOPORTES (CONTROL REAL)
+if(layersState.soportes){
 filtrados.forEach(p=>{
 
 const zoom=map.getZoom();
-const size = zoom>=16 ? 7 : zoom>=14 ? 5 : 4;
+const size=zoom>=16?7:zoom>=14?5:4;
 
 const m=L.circleMarker([p.lat,p.lng],{
-radius:size,
-color:'#fff',
-fillColor:'#ef4444',
-fillOpacity:1
+radius:size,color:'#fff',fillColor:'#ef4444',fillOpacity:1
 });
 
 m.on('mouseover',()=>m.setStyle({radius:size+2}));
@@ -274,57 +240,31 @@ m.on('mouseout',()=>m.setStyle({radius:size}));
 
 m.bindPopup(`
 <b>📍 SOPORTE</b><br>
-${p.nombre}<br>
-${p.comuna}<br>
-${p.categoria}<br>
-${p.tipo}
+${p.nombre}<br>${p.comuna}<br>${p.categoria}<br>${p.tipo}
 `);
 
 cluster.addLayer(m);
 
 });
+}
 
-// TIENDAS + IA
+// 🔵 TIENDAS (CONTROL REAL)
+if(layersState.tiendas){
 tiendasFiltradas.forEach(t=>{
 
 const m=L.marker([t.lat,t.lng],{icon:tiendaIcon});
 
-m.on('click',()=>{
-
-const cercanos=filtrados.filter(s=>map.distance([t.lat,t.lng],[s.lat,s.lng])<500);
-
-let distancias=cercanos.map(s=>map.distance([t.lat,t.lng],[s.lat,s.lng]));
-let promedio=distancias.length?Math.round(distancias.reduce((a,b)=>a+b,0)/distancias.length):0;
-
-let score=calcularScore(cercanos.length,promedio);
-
-// 👉 panel lateral
-mostrarAnalisis(t,cercanos,promedio,score);
-
-});
-
 m.bindPopup(()=>{
-
 const cercanos=filtrados.filter(s=>map.distance([t.lat,t.lng],[s.lat,s.lng])<500);
+let promedio=cercanos.length?Math.round(cercanos.reduce((a,b)=>a+map.distance([t.lat,t.lng],[b.lat,b.lng]),0)/cercanos.length):0;
 
-let distancias=cercanos.map(s=>map.distance([t.lat,t.lng],[s.lat,s.lng]));
-let promedio=distancias.length?Math.round(distancias.reduce((a,b)=>a+b,0)/distancias.length):0;
-
-let score=calcularScore(cercanos.length,promedio);
-
-return `
-<b>🏬 ${t.nombre}</b><br>
-${t.comuna}<br><br>
-📊 Soportes: ${cercanos.length}<br>
-📏 Distancia: ${promedio} m<br>
-⭐ Score: ${score}/100
-`;
-
+return `<b>🏬 ${t.nombre}</b><br>${t.comuna}<br>Soportes:${cercanos.length}<br>Dist:${promedio}m`;
 });
 
 tiendasLayer.addLayer(m);
 
 });
+}
 
 map.addLayer(cluster);
 map.addLayer(tiendasLayer);
@@ -333,9 +273,10 @@ map.addLayer(tiendasLayer);
 document.getElementById('totalSoportes').innerText=filtrados.length;
 document.getElementById('totalTiendas').innerText=tiendasFiltradas.length;
 document.getElementById('totalComunas').innerText=new Set(filtrados.map(s=>s.comuna)).size;
+
 }
 
-// HEX igual
+// HEX
 function renderHex(h3,h6,h8){
 
 h3Layer=L.geoJSON(h3,{style:{color:'#22c55e',fillOpacity:0.2}}).addTo(map);
@@ -351,6 +292,7 @@ if(h6Layer) map[layersState.h6?'addLayer':'removeLayer'](h6Layer);
 if(h8Layer) map[layersState.h8?'addLayer':'removeLayer'](h8Layer);
 }
 
+// RESET
 function reset(){
 filtrados=soportes;
 tiendasFiltradas=tiendas;
