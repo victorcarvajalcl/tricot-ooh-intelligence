@@ -119,6 +119,7 @@ className:''
 });
 
 let h3Layer,h6Layer,h8Layer;
+let h3Data, h6Data, h8Data;
 
 const layersState={
 soportes:true,tiendas:true,h3:true,h6:true,h8:false
@@ -135,6 +136,25 @@ box-shadow:0 0 12px rgba(37,99,235,0.9);
 className:''
 });
 
+// FUNCIONES PARA HEATMAP
+function getHexCount(feature) {
+    const layer = L.geoJSON(feature);
+    const bounds = layer.getBounds();
+    return filtrados.filter(s => bounds.contains([s.lat, s.lng])).length;
+}
+
+function getHeatmapColor(count, maxCount) {
+    if (maxCount === 0) return '#22c55e'; // green
+    const ratio = count / maxCount;
+    const hue = 120 - (120 * ratio); // 120 green to 0 red
+    return `hsl(${hue}, 70%, 50%)`;
+}
+
+function getOpacity(count, maxCount) {
+    if (maxCount === 0) return 0.1;
+    return 0.1 + 0.9 * (count / maxCount);
+}
+
 async function load(){
 
 const [s,t,h3,h6,h8]=await Promise.all([
@@ -147,12 +167,15 @@ fetch('data/h8.geojson').then(r=>r.json())
 
 soportes=s;
 tiendas=t;
+h3Data = h3;
+h6Data = h6;
+h8Data = h8;
 
 filtrados=s;
 tiendasFiltradas=t;
 
 init();
-renderHex(h3,h6,h8);
+renderHex(h3Data,h6Data,h8Data);
 render();
 
 map.on('zoomend', controlarZoom);
@@ -209,6 +232,7 @@ tiendasFiltradas=tiendas.filter(t=>
 (!comuna||t.comuna===comuna)
 );
 
+renderHex(h3Data, h6Data, h8Data);
 render();
 }
 
@@ -288,22 +312,60 @@ document.getElementById('totalComunas').innerText=new Set(filtrados.map(s=>s.com
 // 🔥 HEX PRO
 function renderHex(h3,h6,h8){
 
-h3Layer=L.geoJSON(h3,{
-style:{color:'#22c55e',fillOpacity:0.15},
-onEachFeature:(f,l)=>popupHex(f,l,'H3')
-}).addTo(map);
+    // Remove old layers
+    if (h3Layer) map.removeLayer(h3Layer);
+    if (h6Layer) map.removeLayer(h6Layer);
+    if (h8Layer) map.removeLayer(h8Layer);
 
-h6Layer=L.geoJSON(h6,{
-style:{color:'#2563eb',fillOpacity:0.2},
-onEachFeature:(f,l)=>popupHex(f,l,'H6')
-}).addTo(map);
+    // Compute counts for each feature
+    h3.features.forEach(f => f.properties.count = getHexCount(f));
+    h6.features.forEach(f => f.properties.count = getHexCount(f));
+    h8.features.forEach(f => f.properties.count = getHexCount(f));
 
-h8Layer=L.geoJSON(h8,{
-style:{color:'#9333ea',fillOpacity:0.25},
-onEachFeature:(f,l)=>popupHex(f,l,'H8')
-}).addTo(map);
+    const maxH3 = Math.max(...h3.features.map(f => f.properties.count));
+    const maxH6 = Math.max(...h6.features.map(f => f.properties.count));
+    const maxH8 = Math.max(...h8.features.map(f => f.properties.count));
 
-updateHexVisibility();
+    h3Layer = L.geoJSON(h3, {
+        style: function(feature) {
+            const count = feature.properties.count;
+            return {
+                color: getHeatmapColor(count, maxH3),
+                fillColor: getHeatmapColor(count, maxH3),
+                fillOpacity: getOpacity(count, maxH3),
+                weight: 1
+            };
+        },
+        onEachFeature: (f,l) => popupHex(f,l,'H3')
+    }).addTo(map);
+
+    h6Layer = L.geoJSON(h6, {
+        style: function(feature) {
+            const count = feature.properties.count;
+            return {
+                color: getHeatmapColor(count, maxH6),
+                fillColor: getHeatmapColor(count, maxH6),
+                fillOpacity: getOpacity(count, maxH6),
+                weight: 1
+            };
+        },
+        onEachFeature: (f,l) => popupHex(f,l,'H6')
+    }).addTo(map);
+
+    h8Layer = L.geoJSON(h8, {
+        style: function(feature) {
+            const count = feature.properties.count;
+            return {
+                color: getHeatmapColor(count, maxH8),
+                fillColor: getHeatmapColor(count, maxH8),
+                fillOpacity: getOpacity(count, maxH8),
+                weight: 1
+            };
+        },
+        onEachFeature: (f,l) => popupHex(f,l,'H8')
+    }).addTo(map);
+
+    updateHexVisibility();
 }
 
 // 🧠 ANALISIS HEX PRO
@@ -340,6 +402,7 @@ function reset(){
 filtrados=soportes;
 tiendasFiltradas=tiendas;
 map.setView([-33.45,-70.66],11);
+renderHex(h3Data, h6Data, h8Data);
 render();
 }
 
