@@ -34,6 +34,18 @@ display:none;position:absolute;top:10px;left:10px;z-index:1100;
 background:#2563eb;color:white;border:none;padding:10px;border-radius:8px
 }
 
+.login-screen{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(5,8,20,0.98);z-index:2000}
+.login-card{width:min(400px,100%);padding:32px;background:rgba(16,24,43,0.98);border:1px solid rgba(255,255,255,0.08);border-radius:24px;box-shadow:0 24px 80px rgba(0,0,0,0.35);}
+.login-card h2{margin:0 0 24px;font-size:28px;text-align:center;letter-spacing:0.02em;color:#f8fafc}
+.login-field{margin-bottom:18px}
+.login-field label{display:block;margin-bottom:8px;font-size:13px;color:#94a3b8}
+.login-field input{width:100%;padding:14px 16px;border-radius:14px;background:#081a36;border:1px solid rgba(148,163,184,0.12);color:#fff;font-size:15px}
+#loginBtn{width:100%;padding:14px 16px;border:none;border-radius:14px;background:#2563eb;color:#fff;font-weight:700;cursor:pointer;transition:background .2s}
+#loginBtn:hover{background:#1d4ed8}
+.login-error{margin-top:14px;color:#fb7185;text-align:center;font-size:14px;min-height:20px}
+.hidden{display:none!important}
+.logout-btn{width:100%;padding:12px;border:none;border-radius:12px;background:#dc2626;color:#fff;font-weight:700;cursor:pointer;margin-top:10px}
+
 @media(max-width:768px){
 .app{flex-direction:column}
 .sidebar{position:absolute;width:80%;height:100%;left:-100%;top:0}
@@ -46,9 +58,25 @@ background:#2563eb;color:white;border:none;padding:10px;border-radius:8px
 
 <body>
 
+<div id="loginScreen" class="login-screen">
+  <div class="login-card">
+    <h2>Iniciar sesión</h2>
+    <div class="login-field">
+      <label for="loginUser">Usuario</label>
+      <input id="loginUser" type="text" placeholder="admin / demo" autocomplete="username" />
+    </div>
+    <div class="login-field">
+      <label for="loginPass">Contraseña</label>
+      <input id="loginPass" type="password" placeholder="********" autocomplete="current-password" />
+    </div>
+    <button id="loginBtn">Entrar</button>
+    <div id="loginError" class="login-error"></div>
+  </div>
+</div>
+
 <button class="menu-btn" onclick="toggleMenu()">☰</button>
 
-<div class="app">
+<div id="mainApp" class="app hidden">
 
 <div class="sidebar" id="sidebar">
 
@@ -57,12 +85,14 @@ background:#2563eb;color:white;border:none;padding:10px;border-radius:8px
 <div class="stat">Soportes: <b id="totalSoportes">0</b></div>
 <div class="stat">Tiendas: <b id="totalTiendas">0</b></div>
 <div class="stat">Comunas: <b id="totalComunas">0</b></div>
+<div class="stat">Usuario: <b id="currentUser">-</b></div>
 
 <input id="search" placeholder="Buscar soporte">
 <select id="comuna"></select>
 <select id="categoria"></select>
 
 <button onclick="reset()">Reset</button>
+<button id="logoutBtn" class="logout-btn hidden">Cerrar sesión</button>
 
 <div>
 <span class="chip active" data-layer="soportes">Soportes</span>
@@ -85,13 +115,11 @@ background:#2563eb;color:white;border:none;padding:10px;border-radius:8px
 
 // MENU MOBILE
 function toggleMenu(){
-document.getElementById('sidebar').classList.toggle('open');
-setTimeout(()=>map.invalidateSize(),300);
+    document.getElementById('sidebar').classList.toggle('open');
+    if (map) setTimeout(()=>map.invalidateSize(),300);
 }
 
-const map=L.map('map').setView([-33.45,-70.66],11);
-
-L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(map);
+let map;
 
 let soportes=[],tiendas=[];
 let filtrados=[],tiendasFiltradas=[];
@@ -153,6 +181,82 @@ function getHeatmapColor(count, maxCount) {
 function getOpacity(count, maxCount) {
     if (maxCount === 0) return 0.15;
     return 0.15 + 0.3 * (count / maxCount);
+}
+
+const credentials = {
+    admin: 'admin123',
+    demo: 'demo123'
+};
+
+function showLogin(){
+    document.getElementById('loginScreen').classList.remove('hidden');
+    document.getElementById('mainApp').classList.add('hidden');
+    document.getElementById('logoutBtn').classList.add('hidden');
+}
+
+function showApp(){
+    document.getElementById('loginScreen').classList.add('hidden');
+    document.getElementById('mainApp').classList.remove('hidden');
+    document.getElementById('logoutBtn').classList.remove('hidden');
+    document.getElementById('currentUser').innerText = localStorage.getItem('ooh_user') || '-';
+    if (map) setTimeout(()=>map.invalidateSize(), 200);
+}
+
+function login(){
+    const user = document.getElementById('loginUser').value.trim();
+    const pass = document.getElementById('loginPass').value;
+    const error = document.getElementById('loginError');
+    error.innerText = '';
+
+    if (!user || !pass) {
+        error.innerText = 'Ingrese usuario y contraseña';
+        return;
+    }
+
+    if (credentials[user] === pass) {
+        localStorage.setItem('ooh_user', user);
+        showApp();
+        startApp();
+    } else {
+        error.innerText = 'Usuario o contraseña incorrectos';
+    }
+}
+
+function logout(){
+    localStorage.removeItem('ooh_user');
+    showLogin();
+}
+
+function initAuth(){
+    document.getElementById('loginBtn').addEventListener('click', login);
+    document.getElementById('logoutBtn').addEventListener('click', logout);
+    ['loginUser', 'loginPass'].forEach(id => {
+        document.getElementById(id).addEventListener('keyup', e => {
+            if (e.key === 'Enter') login();
+        });
+    });
+
+    const user = localStorage.getItem('ooh_user');
+    if (user) {
+        showApp();
+        startApp();
+    } else {
+        showLogin();
+    }
+}
+
+function startApp(){
+    if (!map) {
+        map = L.map('map').setView([-33.45,-70.66],11);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(map);
+    }
+
+    if (!soportes.length) {
+        load();
+    } else {
+        renderHex(h3Data, h6Data, h8Data);
+        render();
+    }
 }
 
 async function load(){
@@ -409,7 +513,7 @@ renderHex(h3Data, h6Data, h8Data);
 render();
 }
 
-load();
+initAuth();
 
 </script>
 
