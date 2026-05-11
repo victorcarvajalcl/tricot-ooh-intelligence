@@ -151,8 +151,8 @@ function getHeatmapColor(count, maxCount) {
 }
 
 function getOpacity(count, maxCount) {
-    if (maxCount === 0) return 0.1;
-    return 0.1 + 0.9 * (count / maxCount);
+    if (maxCount === 0) return 0.15;
+    return 0.15 + 0.3 * (count / maxCount);
 }
 
 async function load(){
@@ -333,7 +333,7 @@ function renderHex(h3,h6,h8){
                 color: getHeatmapColor(count, maxH3),
                 fillColor: getHeatmapColor(count, maxH3),
                 opacity: 0.9,
-                fillOpacity: 0,
+                fillOpacity: getOpacity(count, maxH3),
                 weight: 1
             };
         },
@@ -347,7 +347,7 @@ function renderHex(h3,h6,h8){
                 color: getHeatmapColor(count, maxH6),
                 fillColor: getHeatmapColor(count, maxH6),
                 opacity: 0.9,
-                fillOpacity: 0,
+                fillOpacity: getOpacity(count, maxH6),
                 weight: 1
             };
         },
@@ -361,7 +361,7 @@ function renderHex(h3,h6,h8){
                 color: getHeatmapColor(count, maxH8),
                 fillColor: getHeatmapColor(count, maxH8),
                 opacity: 0.9,
-                fillOpacity: 0,
+                fillOpacity: getOpacity(count, maxH8),
                 weight: 1
             };
         },
