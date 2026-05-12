@@ -178,9 +178,10 @@ function getHeatmapColor(count, maxCount) {
     return `hsl(${hue}, 70%, 50%)`;
 }
 
-function getOpacity(count, maxCount) {
-    if (maxCount === 0) return 0.15;
-    return 0.15 + 0.3 * (count / maxCount);
+function getScoreColor(score_norm) {
+    // Alto score = verde, bajo = rojo
+    const hue = 120 - (score_norm / 100) * 120;
+    return `hsl(${hue}, 70%, 50%)`;
 }
 
 const credentials = {
@@ -419,6 +420,20 @@ function renderHex(h3,h6,h8){
     // Cargar mart universal
     fetch('data/mart_universal.json').then(r=>r.json()).then(mart => {
 
+    // Calcular scores
+    mart.forEach(m => {
+        m.score = (m.densidad_soportes * 0.6) - (m.tiendas * 0.4);
+    });
+
+    const scores = mart.map(m => m.score);
+    const minScore = Math.min(...scores);
+    const maxScore = Math.max(...scores);
+
+    // Normalizar scores 0-100
+    mart.forEach(m => {
+        m.score_norm = maxScore > minScore ? ((m.score - minScore) / (maxScore - minScore)) * 100 : 50;
+    });
+
     // Remove old layers
     if (h3Layer) map.removeLayer(h3Layer);
     if (h6Layer) map.removeLayer(h6Layer);
@@ -431,19 +446,16 @@ function renderHex(h3,h6,h8){
     const maxH6 = Math.max(...h6.features.map(f => f.properties.count));
     const maxH8 = Math.max(...h8.features.map(f => f.properties.count));
 
-    // Max densidad para H3
-    const maxDensidad = Math.max(...mart.map(m => m.densidad_soportes));
-
     h3Layer = L.geoJSON(h3, {
         style: function(feature) {
             const h3_id = feature.properties.h3;
             const martData = mart.find(m => m.h3_id === h3_id);
-            const densidad = martData ? martData.densidad_soportes : 0;
+            const score_norm = martData ? martData.score_norm : 50;
             return {
-                color: getHeatmapColor(densidad, maxDensidad),
-                fillColor: getHeatmapColor(densidad, maxDensidad),
+                color: getScoreColor(score_norm),
+                fillColor: getScoreColor(score_norm),
                 opacity: 0.9,
-                fillOpacity: getOpacity(densidad, maxDensidad),
+                fillOpacity: getOpacity(score_norm, 100),
                 weight: 1
             };
         },
@@ -492,11 +504,18 @@ if (tipo === 'H3' && mart) {
     const h3_id = f.properties.h3;
     const martData = mart.find(m => m.h3_id === h3_id);
     if (martData) {
+        const score_norm = martData.score_norm;
+        let nivel = "🔴 Bajo";
+        if (score_norm > 66) nivel = "🟢 Alto";
+        else if (score_norm > 33) nivel = "🟡 Medio";
+
         l.bindPopup(`
 <b>🧩 HEX ${tipo}</b><br>
 Soportes: ${martData.soportes}<br>
 Tiendas: ${martData.tiendas}<br>
-Densidad soportes: ${martData.densidad_soportes} /km²
+Densidad soportes: ${martData.densidad_soportes} /km²<br>
+Score: ${score_norm.toFixed(1)}<br>
+Nivel: ${nivel}
 `).openPopup();
         return;
     }
