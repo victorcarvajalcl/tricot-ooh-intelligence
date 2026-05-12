@@ -46,6 +46,11 @@ background:#2563eb;color:white;border:none;padding:10px;border-radius:8px
 .hidden{display:none!important}
 .logout-btn{width:100%;padding:12px;border:none;border-radius:12px;background:#dc2626;color:#fff;font-weight:700;cursor:pointer;margin-top:10px}
 
+.ranking-item{padding:12px;margin:8px 0;background:rgba(37,99,235,0.1);border-left:3px solid #2563eb;border-radius:8px;cursor:pointer;transition:all .2s}
+.ranking-item:hover{background:rgba(37,99,235,0.2);transform:translateX(4px)}
+.ranking-item-title{font-weight:700;font-size:12px;color:#60a5fa}
+.ranking-item-stats{display:flex;justify-content:space-between;margin-top:6px;font-size:11px;color:#94a3b8}
+
 @media(max-width:768px){
 .app{flex-direction:column}
 .sidebar{position:absolute;width:80%;height:100%;left:-100%;top:0}
@@ -87,6 +92,12 @@ background:#2563eb;color:white;border:none;padding:10px;border-radius:8px
 <div class="stat">Comunas: <b id="totalComunas">0</b></div>
 <div class="stat">Usuario: <b id="currentUser">-</b></div>
 
+<hr style="border:none;border-top:1px solid rgba(255,255,255,0.1);margin:15px 0">
+
+<div class="stat" style="background:#081a3b;border-left:3px solid #22c55e">🏆 Mejor Zona: <b id="mejorZona">-</b></div>
+<div class="stat" style="background:#081a3b;border-left:3px solid #f59e0b">📊 Score Promedio: <b id="promedioScore">-</b></div>
+<div class="stat" style="background:#081a3b;border-left:3px solid #8b5cf6">🧩 Hexágonos: <b id="totalHexagonos">0</b></div>
+
 <input id="search" placeholder="Buscar soporte">
 <select id="comuna"></select>
 <select id="categoria"></select>
@@ -100,6 +111,12 @@ background:#2563eb;color:white;border:none;padding:10px;border-radius:8px
 <span class="chip active" data-layer="h3">H3</span>
 <span class="chip active" data-layer="h6">H6</span>
 <span class="chip" data-layer="h8">H8</span>
+</div>
+
+<div style="margin-top:20px;">
+<h3 style="margin-top:0;margin-bottom:12px;font-size:14px">🏆 Top Oportunidades</h3>
+<div id="rankingPanel" style="max-height:300px;overflow-y:auto;border-radius:12px;background:rgba(5,8,20,0.4)">
+</div>
 </div>
 
 </div>
@@ -148,6 +165,7 @@ className:''
 
 let h3Layer,h6Layer,h8Layer;
 let h3Data, h6Data, h8Data;
+let rankingZonas = [];
 
 const layersState={
 soportes:true,tiendas:true,h3:true,h6:true,h8:false
@@ -185,6 +203,77 @@ function getOpacity(count, maxCount) {
 
 function normalizeH3Id(id) {
     return String(id || '').trim().toLowerCase();
+}
+
+function buildRanking(mart) {
+    const ranking = mart
+        .sort((a, b) => (b.score_norm || 0) - (a.score_norm || 0))
+        .slice(0, 10)
+        .map(m => ({
+            h3_id: m.h3_id,
+            score: Math.round((m.score_norm || 0) * 100) / 100,
+            soportes: m.soportes || 0,
+            tiendas: m.tiendas || 0
+        }));
+    return ranking;
+}
+
+function renderRankingPanel(ranking) {
+    const panel = document.getElementById('rankingPanel');
+    if (!panel || !ranking || ranking.length === 0) return;
+    
+    panel.innerHTML = ranking.map((item, idx) => `
+        <div class="ranking-item" onclick="centerMapOnHex('${item.h3_id}')">
+            <div class="ranking-item-title">#${idx+1} Score: ${item.score}</div>
+            <div class="ranking-item-stats">
+                <span>📍 ${item.soportes} soportes</span>
+                <span>🏬 ${item.tiendas} tiendas</span>
+            </div>
+        </div>
+    `).join('');
+}
+
+function updateTerritoryKPIs(mart) {
+    if (!mart || mart.length === 0) return;
+    
+    const scores = mart.map(m => m.score_norm || 0);
+    const maxScore = Math.max(...scores);
+    const avgScore = (scores.reduce((a,b) => a+b, 0) / scores.length).toFixed(2);
+    
+    const maxItem = mart.find(m => m.score_norm === maxScore);
+    const mejorZonaText = maxItem ? `${maxItem.h3_id.substring(0,8)}... (${maxScore.toFixed(1)})` : '-';
+    
+    document.getElementById('mejorZona').innerText = mejorZonaText;
+    document.getElementById('promedioScore').innerText = avgScore;
+    document.getElementById('totalHexagonos').innerText = mart.length;
+    
+    console.log('Territory KPIs updated:', { mejorZona: mejorZonaText, promedioScore: avgScore, total: mart.length });
+}
+
+function centerMapOnHex(h3_id) {
+    if (!h3Data || !h3Data.features) return;
+    const feature = h3Data.features.find(f => 
+        normalizeH3Id(f.properties.h3 || f.properties.h3_id) === normalizeH3Id(h3_id)
+    );
+    if (!feature) return;
+    
+    const layer = L.geoJSON(feature);
+    const bounds = layer.getBounds();
+    map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
+    
+    // Abrir popup automáticamente
+    setTimeout(() => {
+        if (h3Layer) {
+            h3Layer.eachLayer(lyr => {
+                const lyrFeature = lyr.feature;
+                if (lyrFeature && normalizeH3Id(lyrFeature.properties.h3 || lyrFeature.properties.h3_id) === normalizeH3Id(h3_id)) {
+                    lyr.openPopup();
+                }
+            });
+        }
+    }, 300);
+    
+    console.log('✨ Centrado en hexágono:', h3_id);
 }
 
 function getScoreColor(score_norm) {
@@ -421,6 +510,7 @@ map.addLayer(tiendasLayer);
 document.getElementById('totalSoportes').innerText=filtrados.length;
 document.getElementById('totalTiendas').innerText=tiendasFiltradas.length;
 document.getElementById('totalComunas').innerText=new Set(filtrados.map(s=>s.comuna)).size;
+renderRankingPanel(rankingZonas);
 }
 
 // 🔥 HEX PRO
@@ -442,6 +532,12 @@ function renderHex(h3,h6,h8){
     mart.forEach(m => {
         m.score_norm = maxScore > minScore ? ((m.score - minScore) / (maxScore - minScore)) * 100 : 50;
     });
+
+    // Construir ranking de top 10 zonas
+    rankingZonas = buildRanking(mart);
+    console.log('🏆 Top 10 Zonas por Score Territorial:', rankingZonas);
+    renderRankingPanel(rankingZonas);
+    updateTerritoryKPIs(mart);
 
     // Remove old layers
     if (h3Layer) map.removeLayer(h3Layer);
