@@ -460,30 +460,36 @@ function renderHex(h3,h6,h8){
         martMap[normalizeH3Id(m.h3_id)] = m;
     });
 
-    h3Layer = L.geoJSON(h3, {
-        style: function(feature) {
-            const h3_id = normalizeH3Id(feature.properties.h3 || feature.properties.h3_id);
-            const martData = martMap[h3_id];
+    console.log('renderHex martMap entries', Object.keys(martMap).length, 'h3 features', h3.features.length);
 
-            if (!martData) {
-                return {
-                    color: '#9ca3af',
-                    fillColor: '#9ca3af',
-                    opacity: 0.9,
-                    fillOpacity: 0.2,
-                    weight: 1
-                };
-            }
+    const getH3Style = (feature) => {
+        const rawId = feature.properties.h3 || feature.properties.h3_id || '';
+        const h3_id = normalizeH3Id(rawId);
+        const martData = martMap[h3_id];
+        console.log('renderHex match', {rawId, normalized: h3_id, matched: !!martData});
 
-            const score_norm = martData.score_norm;
+        if (!martData) {
             return {
-                color: getScoreColor(score_norm),
-                fillColor: getScoreColor(score_norm),
+                color: '#9ca3af',
+                fillColor: '#9ca3af',
                 opacity: 0.9,
-                fillOpacity: getOpacity(score_norm, 100),
+                fillOpacity: 0.2,
                 weight: 1
             };
-        },
+        }
+
+        const score_norm = Number.isFinite(martData.score_norm) ? martData.score_norm : 0;
+        return {
+            color: getScoreColor(score_norm),
+            fillColor: getScoreColor(score_norm),
+            opacity: 0.9,
+            fillOpacity: getOpacity(score_norm, 100),
+            weight: 1
+        };
+    };
+
+    h3Layer = L.geoJSON(h3, {
+        style: getH3Style,
         onEachFeature: (f,l) => popupHex(f,l,'H3', martMap)
     }).addTo(map);
 
@@ -517,7 +523,54 @@ function renderHex(h3,h6,h8){
 
     updateHexVisibility();
 
-    }).catch(err => console.error('Error cargando mart:', err));
+    }).catch(err => {
+        console.error('Error cargando mart:', err);
+
+        if (h3Layer) map.removeLayer(h3Layer);
+        if (h6Layer) map.removeLayer(h6Layer);
+        if (h8Layer) map.removeLayer(h8Layer);
+
+        h3Layer = L.geoJSON(h3, {
+            style: {
+                color: '#9ca3af',
+                fillColor: '#9ca3af',
+                opacity: 0.9,
+                fillOpacity: 0.2,
+                weight: 1
+            },
+            onEachFeature: (f,l) => popupHex(f,l,'H3', {})
+        }).addTo(map);
+
+        h6Layer = L.geoJSON(h6, {
+            style: function(feature) {
+                const count = feature.properties.count || 0;
+                return {
+                    color: getHeatmapColor(count, 1),
+                    fillColor: getHeatmapColor(count, 1),
+                    opacity: 0.9,
+                    fillOpacity: getOpacity(count, 1),
+                    weight: 1
+                };
+            },
+            onEachFeature: (f,l) => popupHex(f,l,'H6')
+        }).addTo(map);
+
+        h8Layer = L.geoJSON(h8, {
+            style: function(feature) {
+                const count = feature.properties.count || 0;
+                return {
+                    color: getHeatmapColor(count, 1),
+                    fillColor: getHeatmapColor(count, 1),
+                    opacity: 0.9,
+                    fillOpacity: getOpacity(count, 1),
+                    weight: 1
+                };
+            },
+            onEachFeature: (f,l) => popupHex(f,l,'H8')
+        }).addTo(map);
+
+        updateHexVisibility();
+    });
 }
 
 // 🧠 ANALISIS HEX PRO
