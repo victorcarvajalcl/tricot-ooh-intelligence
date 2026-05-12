@@ -1,0 +1,23 @@
+[
+  {
+    "h3_id": "84b2c55ffffffff",
+    "soportes": 3872,
+    "tiendas": 9,
+    "densidad_soportes": 2.5265,
+    "densidad_tiendas": 0.0059
+  },
+  {
+    "h3_id": "84b2c51ffffffff",
+    "soportes": 3520,
+    "tiendas": 4,
+    "densidad_soportes": 2.3045,
+    "densidad_tiendas": 0.0026
+  },
+  {
+    "h3_id": "84b2c5dffffffff",
+    "soportes": 215,
+    "tiendas": 0,
+    "densidad_soportes": 0.1395,
+    "densidad_tiendas": 0.0
+  }
+]

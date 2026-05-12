@@ -416,32 +416,38 @@ document.getElementById('totalComunas').innerText=new Set(filtrados.map(s=>s.com
 // 🔥 HEX PRO
 function renderHex(h3,h6,h8){
 
+    // Cargar mart universal
+    fetch('data/mart_universal.json').then(r=>r.json()).then(mart => {
+
     // Remove old layers
     if (h3Layer) map.removeLayer(h3Layer);
     if (h6Layer) map.removeLayer(h6Layer);
     if (h8Layer) map.removeLayer(h8Layer);
 
-    // Compute counts for each feature
-    h3.features.forEach(f => f.properties.count = getHexCount(f));
+    // Compute counts for H6 and H8
     h6.features.forEach(f => f.properties.count = getHexCount(f));
     h8.features.forEach(f => f.properties.count = getHexCount(f));
 
-    const maxH3 = Math.max(...h3.features.map(f => f.properties.count));
     const maxH6 = Math.max(...h6.features.map(f => f.properties.count));
     const maxH8 = Math.max(...h8.features.map(f => f.properties.count));
 
+    // Max densidad para H3
+    const maxDensidad = Math.max(...mart.map(m => m.densidad_soportes));
+
     h3Layer = L.geoJSON(h3, {
         style: function(feature) {
-            const count = feature.properties.count;
+            const h3_id = feature.properties.h3;
+            const martData = mart.find(m => m.h3_id === h3_id);
+            const densidad = martData ? martData.densidad_soportes : 0;
             return {
-                color: getHeatmapColor(count, maxH3),
-                fillColor: getHeatmapColor(count, maxH3),
+                color: getHeatmapColor(densidad, maxDensidad),
+                fillColor: getHeatmapColor(densidad, maxDensidad),
                 opacity: 0.9,
-                fillOpacity: getOpacity(count, maxH3),
+                fillOpacity: getOpacity(densidad, maxDensidad),
                 weight: 1
             };
         },
-        onEachFeature: (f,l) => popupHex(f,l,'H3')
+        onEachFeature: (f,l) => popupHex(f,l,'H3', mart)
     }).addTo(map);
 
     h6Layer = L.geoJSON(h6, {
@@ -473,12 +479,28 @@ function renderHex(h3,h6,h8){
     }).addTo(map);
 
     updateHexVisibility();
+
+    }).catch(err => console.error('Error cargando mart:', err));
 }
 
 // 🧠 ANALISIS HEX PRO
-function popupHex(f,l,tipo){
+function popupHex(f,l,tipo,mart=null){
 
 l.on('click',()=>{
+
+if (tipo === 'H3' && mart) {
+    const h3_id = f.properties.h3;
+    const martData = mart.find(m => m.h3_id === h3_id);
+    if (martData) {
+        l.bindPopup(`
+<b>🧩 HEX ${tipo}</b><br>
+Soportes: ${martData.soportes}<br>
+Tiendas: ${martData.tiendas}<br>
+Densidad soportes: ${martData.densidad_soportes} /km²
+`).openPopup();
+        return;
+    }
+}
 
 const bounds=l.getBounds();
 
