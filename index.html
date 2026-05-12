@@ -178,6 +178,15 @@ function getHeatmapColor(count, maxCount) {
     return `hsl(${hue}, 70%, 50%)`;
 }
 
+function getOpacity(count, maxCount) {
+    if (maxCount === 0) return 0.15;
+    return 0.15 + 0.3 * (count / maxCount);
+}
+
+function normalizeH3Id(id) {
+    return String(id || '').trim().toLowerCase();
+}
+
 function getScoreColor(score_norm) {
     // Alto score = verde, bajo = rojo
     const hue = 120 - (score_norm / 100) * 120;
@@ -446,11 +455,27 @@ function renderHex(h3,h6,h8){
     const maxH6 = Math.max(...h6.features.map(f => f.properties.count));
     const maxH8 = Math.max(...h8.features.map(f => f.properties.count));
 
+    const martMap = {};
+    mart.forEach(m => {
+        martMap[normalizeH3Id(m.h3_id)] = m;
+    });
+
     h3Layer = L.geoJSON(h3, {
         style: function(feature) {
-            const h3_id = feature.properties.h3;
-            const martData = mart.find(m => m.h3_id === h3_id);
-            const score_norm = martData ? martData.score_norm : 50;
+            const h3_id = normalizeH3Id(feature.properties.h3 || feature.properties.h3_id);
+            const martData = martMap[h3_id];
+
+            if (!martData) {
+                return {
+                    color: '#9ca3af',
+                    fillColor: '#9ca3af',
+                    opacity: 0.9,
+                    fillOpacity: 0.2,
+                    weight: 1
+                };
+            }
+
+            const score_norm = martData.score_norm;
             return {
                 color: getScoreColor(score_norm),
                 fillColor: getScoreColor(score_norm),
@@ -459,7 +484,7 @@ function renderHex(h3,h6,h8){
                 weight: 1
             };
         },
-        onEachFeature: (f,l) => popupHex(f,l,'H3', mart)
+        onEachFeature: (f,l) => popupHex(f,l,'H3', martMap)
     }).addTo(map);
 
     h6Layer = L.geoJSON(h6, {
@@ -501,8 +526,8 @@ function popupHex(f,l,tipo,mart=null){
 l.on('click',()=>{
 
 if (tipo === 'H3' && mart) {
-    const h3_id = f.properties.h3;
-    const martData = mart.find(m => m.h3_id === h3_id);
+    const h3_id = normalizeH3Id(f.properties.h3 || f.properties.h3_id);
+    const martData = mart[h3_id];
     if (martData) {
         const score_norm = martData.score_norm;
         let nivel = "🔴 Bajo";
@@ -519,6 +544,12 @@ Nivel: ${nivel}
 `).openPopup();
         return;
     }
+
+    l.bindPopup(`
+<b>🧩 HEX ${tipo}</b><br>
+Datos no disponibles<br>
+`).openPopup();
+    return;
 }
 
 const bounds=l.getBounds();
