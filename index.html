@@ -230,18 +230,66 @@ function getFeatureCentroid(feature) {
     return count ? [lat / count, lng / count] : [0, 0];
 }
 
-function getFeatureScore(feature) {
-    if (!h3ScoreMap) return null;
+function getScoreLevel(score_norm) {
+    if (!Number.isFinite(score_norm)) return 'Desconocido';
+    if (score_norm > 66) return 'Alta';
+    if (score_norm > 33) return 'Media';
+    return 'Baja';
+}
+
+function getOpportunityColor(score_norm) {
+    if (!Number.isFinite(score_norm)) return '#9ca3af';
+    if (score_norm > 66) return '#22c55e';
+    if (score_norm > 33) return '#eab308';
+    return '#ef4444';
+}
+
+function getTerritoryData(feature) {
+    const rawId = feature.properties.h3 || feature.properties.h3_id || '';
+    const h3_id = normalizeH3Id(rawId);
+    if (h3_id && h3ScoreMap[h3_id]) {
+        return {
+            h3_id,
+            mart: h3ScoreMap[h3_id].martData,
+            exact: true
+        };
+    }
+
     const centroid = getFeatureCentroid(feature);
     for (const key in h3ScoreMap) {
         const entry = h3ScoreMap[key];
-        if (!entry.feature) continue;
-        const layer = L.geoJSON(entry.feature);
-        if (layer.getBounds().contains([centroid[0], centroid[1]])) {
-            return entry.score_norm;
+        if (!entry.bounds) continue;
+        if (entry.bounds.contains([centroid[0], centroid[1]])) {
+            return {
+                h3_id: key,
+                mart: entry.martData,
+                exact: false
+            };
         }
     }
-    return null;
+
+    return {
+        h3_id: null,
+        mart: null,
+        exact: false
+    };
+}
+
+function getTerritoryStyle(feature) {
+    const territory = getTerritoryData(feature);
+    const score_norm = territory.mart && Number.isFinite(territory.mart.score_norm)
+        ? territory.mart.score_norm
+        : 50;
+    const hidden = showOportunidadesOnly && score_norm <= SCORE_THRESHOLD;
+    return {
+        color: getOpportunityColor(score_norm),
+        fillColor: getOpportunityColor(score_norm),
+        opacity: hidden ? 0 : 0.9,
+        fillOpacity: hidden ? 0 : 0.25 + (score_norm / 100) * 0.45,
+        weight: 1,
+        interactive: !hidden,
+        className: 'hexagon-path'
+    };
 }
 
 function buildRanking(mart) {
@@ -587,9 +635,6 @@ function renderHex(h3,h6,h8){
     h6.features.forEach(f => f.properties.count = getHexCount(f));
     h8.features.forEach(f => f.properties.count = getHexCount(f));
 
-    const maxH6 = Math.max(...h6.features.map(f => f.properties.count));
-    const maxH8 = Math.max(...h8.features.map(f => f.properties.count));
-
     const martMap = {};
     mart.forEach(m => {
         martMap[normalizeH3Id(m.h3_id)] = m;
@@ -599,77 +644,28 @@ function renderHex(h3,h6,h8){
     h3.features.forEach(feature => {
         const rawId = feature.properties.h3 || feature.properties.h3_id || '';
         const h3_id = normalizeH3Id(rawId);
-        const martData = martMap[h3_id];
+        const martData = martMap[h3_id] || null;
         h3ScoreMap[h3_id] = {
             feature,
-            score_norm: martData ? Number.isFinite(martData.score_norm) ? martData.score_norm : 0 : null
+            martData,
+            bounds: L.geoJSON(feature).getBounds()
         };
     });
 
     console.log('renderHex martMap entries', Object.keys(martMap).length, 'h3 features', h3.features.length);
 
-    const getH3Style = (feature) => {
-        const rawId = feature.properties.h3 || feature.properties.h3_id || '';
-        const h3_id = normalizeH3Id(rawId);
-        const martData = martMap[h3_id];
-        const score_norm = martData && Number.isFinite(martData.score_norm) ? martData.score_norm : null;
-        const hidden = showOportunidadesOnly && (score_norm === null || score_norm <= SCORE_THRESHOLD);
-
-        if (!martData) {
-            return {
-                color: '#9ca3af',
-                fillColor: '#9ca3af',
-                opacity: hidden ? 0 : 0.9,
-                fillOpacity: hidden ? 0 : 0.2,
-                weight: 1,
-                interactive: !hidden,
-                className: 'hexagon-path'
-            };
-        }
-
-        return {
-            color: getScoreColor(score_norm),
-            fillColor: getScoreColor(score_norm),
-            opacity: hidden ? 0 : 0.9,
-            fillOpacity: hidden ? 0 : getOpacity(score_norm, 100),
-            weight: 1,
-            interactive: !hidden,
-            className: 'hexagon-path'
-        };
-    };
-
-    const getHexStyle = (feature, max) => {
-        const score_norm = getFeatureScore(feature);
-        const hidden = showOportunidadesOnly && (score_norm === null || score_norm <= SCORE_THRESHOLD);
-        const count = feature.properties.count;
-        const color = getHeatmapColor(count, max);
-        return {
-            color,
-            fillColor: color,
-            opacity: hidden ? 0 : 0.9,
-            fillOpacity: hidden ? 0 : getOpacity(count, max),
-            weight: 1,
-            interactive: !hidden,
-            className: 'hexagon-path'
-        };
-    };
-
     h3Layer = L.geoJSON(h3, {
-        style: getH3Style,
-        onEachFeature: (f,l) => popupHex(f,l,'H3', martMap)
+        style: getTerritoryStyle,
+        onEachFeature: (f,l) => popupHex(f,l,'H3')
     }).addTo(map);
 
     h6Layer = L.geoJSON(h6, {
-        style: function(feature) {
-            return getHexStyle(feature, maxH6);
-        },
+        style: getTerritoryStyle,
         onEachFeature: (f,l) => popupHex(f,l,'H6')
     }).addTo(map);
 
     h8Layer = L.geoJSON(h8, {
-        style: function(feature) {
-            return getHexStyle(feature, maxH8);
-        },
+        style: getTerritoryStyle,
         onEachFeature: (f,l) => popupHex(f,l,'H8')
     }).addTo(map);
 
@@ -684,41 +680,17 @@ function renderHex(h3,h6,h8){
         if (h8Layer) map.removeLayer(h8Layer);
 
         h3Layer = L.geoJSON(h3, {
-            style: {
-                color: '#9ca3af',
-                fillColor: '#9ca3af',
-                opacity: 0.9,
-                fillOpacity: 0.2,
-                weight: 1
-            },
-            onEachFeature: (f,l) => popupHex(f,l,'H3', {})
+            style: getTerritoryStyle,
+            onEachFeature: (f,l) => popupHex(f,l,'H3')
         }).addTo(map);
 
         h6Layer = L.geoJSON(h6, {
-            style: function(feature) {
-                const count = feature.properties.count || 0;
-                return {
-                    color: getHeatmapColor(count, 1),
-                    fillColor: getHeatmapColor(count, 1),
-                    opacity: 0.9,
-                    fillOpacity: getOpacity(count, 1),
-                    weight: 1
-                };
-            },
+            style: getTerritoryStyle,
             onEachFeature: (f,l) => popupHex(f,l,'H6')
         }).addTo(map);
 
         h8Layer = L.geoJSON(h8, {
-            style: function(feature) {
-                const count = feature.properties.count || 0;
-                return {
-                    color: getHeatmapColor(count, 1),
-                    fillColor: getHeatmapColor(count, 1),
-                    opacity: 0.9,
-                    fillOpacity: getOpacity(count, 1),
-                    weight: 1
-                };
-            },
+            style: getTerritoryStyle,
             onEachFeature: (f,l) => popupHex(f,l,'H8')
         }).addTo(map);
 
@@ -727,54 +699,27 @@ function renderHex(h3,h6,h8){
 }
 
 // 🧠 ANALISIS HEX PRO
-function popupHex(f,l,tipo,mart=null){
-
-l.on('click',()=>{
-
-if (tipo === 'H3' && mart) {
-    const h3_id = normalizeH3Id(f.properties.h3 || f.properties.h3_id);
-    const martData = mart[h3_id];
-    if (martData) {
-        const score_norm = martData.score_norm;
-        let nivel = "🔴 Bajo";
-        if (score_norm > 66) nivel = "🟢 Alto";
-        else if (score_norm > 33) nivel = "🟡 Medio";
+function popupHex(f,l,tipo){
+    l.on('click',()=>{
+        const territory = getTerritoryData(f);
+        const score_norm = territory.mart && Number.isFinite(territory.mart.score_norm)
+            ? territory.mart.score_norm
+            : null;
+        const nivel = getScoreLevel(score_norm);
+        const soportesCount = territory.mart ? (territory.mart.soportes || 0) : getHexCount(f);
+        const tiendasCount = territory.mart ? (territory.mart.tiendas || 0) : 0;
+        const h3Label = territory.h3_id ? `${territory.h3_id.substring(0,8)}...` : 'ND';
+        const descriptor = territory.exact ? 'Exacto' : territory.h3_id ? 'Aproximado' : 'Por defecto';
 
         l.bindPopup(`
 <b>🧩 HEX ${tipo}</b><br>
-Soportes: ${martData.soportes}<br>
-Tiendas: ${martData.tiendas}<br>
-Densidad soportes: ${martData.densidad_soportes} /km²<br>
-Score: ${score_norm.toFixed(1)}<br>
+H3: ${h3Label} (${descriptor})<br>
+Score: ${score_norm !== null ? score_norm.toFixed(1) : 'ND'}<br>
+Soportes: ${soportesCount}<br>
+Tiendas: ${tiendasCount}<br>
 Nivel: ${nivel}
 `).openPopup();
-        return;
-    }
-
-    l.bindPopup(`
-<b>🧩 HEX ${tipo}</b><br>
-Datos no disponibles<br>
-`).openPopup();
-    return;
-}
-
-const bounds=l.getBounds();
-
-const dentro=filtrados.filter(s=>{
-return bounds.contains([s.lat,s.lng]);
-});
-
-let nivel="🟢 Baja";
-if(dentro.length>50) nivel="🔴 Alta";
-else if(dentro.length>20) nivel="🟡 Media";
-
-l.bindPopup(`
-<b>🧩 HEX ${tipo}</b><br>
-Soportes: ${dentro.length}<br>
-Nivel: ${nivel}
-`).openPopup();
-
-});
+    });
 }
 
 function updateHexVisibility(){
@@ -784,35 +729,9 @@ function updateHexVisibility(){
 }
 
 function updateHexLayerStyles(){
-    if (h3Layer) h3Layer.setStyle(feature => {
-        const rawId = feature.properties.h3 || feature.properties.h3_id || '';
-        const h3_id = normalizeH3Id(rawId);
-        const martData = h3ScoreMap[h3_id] ? { score_norm: h3ScoreMap[h3_id].score_norm } : null;
-        const score_norm = martData && Number.isFinite(martData.score_norm) ? martData.score_norm : null;
-        const hidden = showOportunidadesOnly && (score_norm === null || score_norm <= SCORE_THRESHOLD);
-        if (!martData) {
-            return {
-                color: '#9ca3af',
-                fillColor: '#9ca3af',
-                opacity: hidden ? 0 : 0.9,
-                fillOpacity: hidden ? 0 : 0.2,
-                weight: 1,
-                interactive: !hidden,
-                className: 'hexagon-path'
-            };
-        }
-        return {
-            color: getScoreColor(score_norm),
-            fillColor: getScoreColor(score_norm),
-            opacity: hidden ? 0 : 0.9,
-            fillOpacity: hidden ? 0 : getOpacity(score_norm, 100),
-            weight: 1,
-            interactive: !hidden,
-            className: 'hexagon-path'
-        };
-    });
-    if (h6Layer) h6Layer.setStyle(feature => getHexStyle(feature, Math.max(...h6Data.features.map(f=>f.properties.count))));
-    if (h8Layer) h8Layer.setStyle(feature => getHexStyle(feature, Math.max(...h8Data.features.map(f=>f.properties.count))));
+    if (h3Layer) h3Layer.setStyle(getTerritoryStyle);
+    if (h6Layer) h6Layer.setStyle(getTerritoryStyle);
+    if (h8Layer) h8Layer.setStyle(getTerritoryStyle);
 }
 
 function toggleOportunidades(){
