@@ -254,22 +254,8 @@ function getTerritoryData(feature) {
             exact: true
         };
     }
-
-    const centroid = getFeatureCentroid(feature);
-    for (const key in h3ScoreMap) {
-        const entry = h3ScoreMap[key];
-        if (!entry.bounds) continue;
-        if (entry.bounds.contains([centroid[0], centroid[1]])) {
-            return {
-                h3_id: key,
-                mart: entry.martData,
-                exact: false
-            };
-        }
-    }
-
     return {
-        h3_id: null,
+        h3_id: h3_id || null,
         mart: null,
         exact: false
     };
@@ -279,13 +265,13 @@ function getTerritoryStyle(feature) {
     const territory = getTerritoryData(feature);
     const score_norm = territory.mart && Number.isFinite(territory.mart.score_norm)
         ? territory.mart.score_norm
-        : 50;
+        : 0;
     const hidden = showOportunidadesOnly && score_norm <= SCORE_THRESHOLD;
     return {
         color: getOpportunityColor(score_norm),
         fillColor: getOpportunityColor(score_norm),
         opacity: hidden ? 0 : 0.9,
-        fillOpacity: hidden ? 0 : 0.25 + (score_norm / 100) * 0.45,
+        fillOpacity: hidden ? 0 : 0.2 + (score_norm / 100) * 0.6,
         weight: 1,
         interactive: !hidden,
         className: 'hexagon-path'
@@ -642,14 +628,42 @@ function renderHex(h3,h6,h8){
 
     h3ScoreMap = {};
     h3.features.forEach(feature => {
-        const rawId = feature.properties.h3 || feature.properties.h3_id || '';
+        const rawId = String(feature.properties.h3 || feature.properties.h3_id || '').toString();
         const h3_id = normalizeH3Id(rawId);
         const martData = martMap[h3_id] || null;
         h3ScoreMap[h3_id] = {
             feature,
-            martData,
-            bounds: L.geoJSON(feature).getBounds()
+            martData
         };
+        console.log('renderHex H3 feature match', {
+            featureH3: rawId,
+            normalizedH3: h3_id,
+            martFound: martData ? {
+                h3_id: martData.h3_id,
+                score_norm: martData.score_norm,
+                soportes: martData.soportes,
+                tiendas: martData.tiendas
+            } : null
+        });
+    });
+
+    [['H6', h6], ['H8', h8]].forEach(([layerName, dataset]) => {
+        dataset.features.forEach(feature => {
+            const rawId = String(feature.properties.h3 || feature.properties.h3_id || '').toString();
+            const h3_id = normalizeH3Id(rawId);
+            const martData = h3ScoreMap[h3_id] ? h3ScoreMap[h3_id].martData : null;
+            console.log('renderHex feature match', {
+                layer: layerName,
+                featureH3: rawId,
+                normalizedH3: h3_id,
+                martFound: martData ? {
+                    h3_id: martData.h3_id,
+                    score_norm: martData.score_norm,
+                    soportes: martData.soportes,
+                    tiendas: martData.tiendas
+                } : null
+            });
+        });
     });
 
     console.log('renderHex martMap entries', Object.keys(martMap).length, 'h3 features', h3.features.length);
@@ -704,17 +718,17 @@ function popupHex(f,l,tipo){
         const territory = getTerritoryData(f);
         const score_norm = territory.mart && Number.isFinite(territory.mart.score_norm)
             ? territory.mart.score_norm
-            : null;
+            : 0;
         const nivel = getScoreLevel(score_norm);
-        const soportesCount = territory.mart ? (territory.mart.soportes || 0) : getHexCount(f);
+        const soportesCount = territory.mart ? (territory.mart.soportes || 0) : 0;
         const tiendasCount = territory.mart ? (territory.mart.tiendas || 0) : 0;
         const h3Label = territory.h3_id ? `${territory.h3_id.substring(0,8)}...` : 'ND';
-        const descriptor = territory.exact ? 'Exacto' : territory.h3_id ? 'Aproximado' : 'Por defecto';
+        const descriptor = territory.exact ? 'Exacto' : 'Sin match';
 
         l.bindPopup(`
 <b>🧩 HEX ${tipo}</b><br>
 H3: ${h3Label} (${descriptor})<br>
-Score: ${score_norm !== null ? score_norm.toFixed(1) : 'ND'}<br>
+Score: ${score_norm.toFixed(1)}<br>
 Soportes: ${soportesCount}<br>
 Tiendas: ${tiendasCount}<br>
 Nivel: ${nivel}
